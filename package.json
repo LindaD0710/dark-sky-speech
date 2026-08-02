@@ -1,0 +1,9 @@
+{
+  "name": "dark-sky-speech",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs",
+    "test:reasoner": "LLM_MODEL=deepseek-reasoner node test/run.mjs"
+  }
+}

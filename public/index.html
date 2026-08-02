@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>暗夜表达 · 原型 v1</title>
+<style>
+  :root{
+    --ink:#EAEEF7;
+    --muted:#828EA6;
+    --dim:#5A6478;
+    --star:#FFE9B0;
+    --line:rgba(255,255,255,.09);
+    --panel:rgba(6,9,16,.88);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:#03050b;color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.7;overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  #sky{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+  #vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 42%,transparent 40%,rgba(0,0,0,.55) 100%)}
+  /* 结果页把天空压到后面，让数据可读——熄灯的变化仍然透得出来 */
+  #scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(2,4,10,.6);
+    opacity:0;transition:opacity .7s ease}
+  #scrim.on{opacity:1}
+  /* 分析要几秒，这几秒也是体验的一部分 */
+  #loading{position:fixed;inset:0;z-index:5;display:none;place-content:center;text-align:center;
+    background:rgba(3,5,12,.86);backdrop-filter:blur(8px)}
+  #loading.on{display:grid;animation:fade .4s ease both}
+  .lo-dot{width:9px;height:9px;border-radius:50%;background:var(--star);margin:0 auto 22px;
+    box-shadow:0 0 26px rgba(255,220,140,.9);animation:breathe 1.9s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(.7);opacity:.45}50%{transform:scale(1.5);opacity:1}}
+  #loadText{color:var(--muted);font-size:15px;letter-spacing:.1em}
+  .stack{position:relative;z-index:2;min-height:100%;display:flex;flex-direction:column}
+
+  /* ---------- shared ---------- */
+  .wrap{width:min(1080px,100%);margin:0 auto;padding:0 22px}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(255,233,176,.42);
+    background:rgba(255,233,176,.07);color:var(--star);padding:13px 30px;border-radius:999px;
+    font-size:15px;letter-spacing:.06em;cursor:pointer;transition:.28s;font-family:inherit;
+  }
+  .btn:hover{background:rgba(255,233,176,.16);border-color:rgba(255,233,176,.75);
+    box-shadow:0 0 34px rgba(255,220,140,.22)}
+  .btn.ghost{border-color:var(--line);background:transparent;color:var(--muted)}
+  .btn.ghost:hover{color:var(--ink);border-color:rgba(255,255,255,.3);box-shadow:none}
+  .btn.sm{padding:8px 17px;font-size:13px}
+
+  .screen{display:none}
+  .screen.on{display:block;animation:fade .7s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* ---------- landing ---------- */
+  #landing{min-height:100svh;display:none;place-content:center;text-align:center}
+  #landing.on{display:grid}
+  #landing .wrap{position:relative}
+  #landing .wrap::before{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:150%;height:150%;border-radius:50%;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(2,4,10,.82),rgba(2,4,10,.55) 52%,transparent 78%);
+  }
+  #landing .wrap>*{position:relative}
+  .title{font-size:clamp(38px,8.4vw,74px);line-height:1.12;font-weight:600;letter-spacing:.02em}
+  .title em{font-style:normal;color:var(--star);text-shadow:0 0 46px rgba(255,215,130,.4)}
+  .sub{margin-top:20px;color:var(--muted);font-size:clamp(14px,3.4vw,17px);line-height:1.9}
+  .actions{margin-top:44px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .foot-note{margin-top:66px;color:var(--dim);font-size:12.5px;line-height:2}
+
+  /* ---------- picker ---------- */
+  .tabs{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .tab{padding:9px 20px;border-radius:999px;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;transition:.24s}
+  .tab:hover{color:var(--ink);border-color:rgba(255,255,255,.28)}
+  .tab.on{color:var(--star);border-color:rgba(255,233,176,.5);background:rgba(255,233,176,.08)}
+  .prompt{font-size:clamp(24px,5.4vw,35px);margin-top:24px;font-weight:600;line-height:1.45}
+  textarea{
+    width:100%;min-height:132px;margin-top:16px;background:rgba(0,0,0,.4);color:var(--ink);
+    border:1px solid var(--line);border-radius:14px;padding:16px;font-family:inherit;
+    font-size:14.5px;line-height:1.85;resize:vertical;outline:none
+  }
+  textarea:focus{border-color:rgba(255,233,176,.4)}
+
+  /* ---------- stage ---------- */
+  #stage{min-height:100svh;display:none;flex-direction:column;justify-content:space-between;padding:26px 0 30px}
+  #stage.on{display:flex}
+  .hud{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+
+  .clock{text-align:right;font-variant-numeric:tabular-nums}
+  .clock b{font-size:30px;font-weight:500}
+  .clock span{font-size:11px;letter-spacing:.18em;color:var(--dim);display:block}
+
+  /* ---------- 逐句陈列 ---------- */
+  .scene{font-size:13px;letter-spacing:.14em;color:var(--muted)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:11.5px;color:var(--dim)}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .lg::before{content:"";width:8px;height:8px;border-radius:2px}
+  .lg-core::before{background:#FFE9B0}
+  .lg-fact::before{background:#7FE0C0}
+  .lg-self::before{background:#FFA36B}
+  .lg-fill::before{background:#8FB6FF}
+  .lg-void::before{background:#C79BFF}
+  .lg-back::before{background:#6E7688}
+  .legend-note{font-size:11.5px;color:var(--dim);margin:-6px 0 16px;line-height:1.8}
+
+  .script{max-height:56svh;overflow-y:auto;scrollbar-width:none;padding-right:4px}
+  .script::-webkit-scrollbar{display:none}
+  .ln{display:flex;gap:14px;align-items:flex-start;padding:9px 0;
+    animation:lnIn .5s cubic-bezier(.2,.9,.3,1) both}
+  @keyframes lnIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+  .ln .tag{flex:none;width:5.4em;text-align:right;font-size:11px;letter-spacing:.08em;
+    margin-top:7px;color:var(--dim);white-space:nowrap}
+  .ln .tx{font-size:clamp(16px,2.3vw,21px);line-height:1.75;color:#8E97AB}
+  /* 句子整体的分量：核心句亮，噪音句暗 */
+  .ln.core .tx{color:#F4F7FD}
+  .ln.core .tag{color:#FFE9B0}
+  .ln.fact .tx{color:#F4F7FD}
+  .ln.fact .tag{color:#7FE0C0}
+  .ln.back .tag{color:#6E7688}
+  .ln.self .tag{color:#FFA36B}
+  .ln.fill .tag,.ln.fill .tx{color:#5E6577}
+  .ln.void .tag{color:#C79BFF}
+  /* 词级标注 */
+  .m-fact{color:#7FE0C0;font-weight:600}
+  .m-self{color:#FFA36B}
+  .m-fill{color:#8FB6FF}
+  .m-core{color:#FFE9B0;font-weight:600}
+  .m-rep{color:#8FB6FF;font-weight:700;text-decoration:underline wavy #8FB6FF;
+    text-decoration-thickness:1px;text-underline-offset:5px}
+  .m-rep sup{font-size:.62em;opacity:.9;margin-left:2px}
+
+
+  .stage-foot{display:flex;justify-content:center;gap:12px;margin-top:26px;flex-wrap:wrap}
+
+
+
+  /* ---------- result ---------- */
+  #result{display:none;padding:56px 0 90px}
+  #result.on{display:block}
+  .verdict{text-align:center;margin-bottom:16px}
+  /* 隐喻在这里第一次被说破——不是文案，是对刚才那件事的命名 */
+  .reveal{font-size:clamp(16px,3.8vw,21px);line-height:2;color:#C3CBDC;
+    animation:reveal 1.6s ease .35s both}
+  @keyframes reveal{from{opacity:0;letter-spacing:.14em}to{opacity:1;letter-spacing:.01em}}
+  .headline{font-size:clamp(24px,4.6vw,38px);line-height:1.5;font-weight:600;margin-top:18px}
+  .headline b{color:#FF8A46;font-weight:600;font-variant-numeric:tabular-nums}
+  .headline .ok{color:var(--star)}
+
+  .panel{background:var(--panel);backdrop-filter:blur(16px);border:1px solid var(--line);
+    border-radius:20px;padding:24px;margin-top:20px}
+  .panel h4{font-size:12px;letter-spacing:.2em;color:var(--dim);font-weight:500;margin-bottom:4px}
+  .panel .hint{font-size:12.5px;color:var(--dim);margin-top:2px;margin-bottom:16px;line-height:1.8}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line);border-radius:16px;overflow:hidden;margin-top:20px}
+  .stat{background:#06090f;padding:18px 16px}
+  .stat b{display:block;font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
+  .stat b.warn{color:#FF8A46}
+  .stat b.good{color:var(--star)}
+  .stat span{font-size:11.5px;color:var(--dim);letter-spacing:.06em}
+
+  .sent{display:flex;gap:13px;padding:11px 13px;border-radius:11px;cursor:pointer;transition:.2s;align-items:flex-start}
+  .sent:hover{background:rgba(255,255,255,.045)}
+  .sent .dot{flex:none;width:7px;height:7px;border-radius:50%;margin-top:11px;transition:.3s}
+  .sent .txt{font-size:14.5px;line-height:1.8;transition:.3s}
+  .sent .rl{flex:none;font-size:10.5px;letter-spacing:.1em;color:var(--dim);margin-top:6px;width:3.4em;text-align:right}
+  .sent[data-k="sig"] .dot{background:var(--star);box-shadow:0 0 12px rgba(255,220,140,.9)}
+  .sent[data-k="sig"] .txt{color:#FFF3D2}
+  .sent[data-k="noise"] .dot{background:#4A5568}
+  .sent[data-k="noise"] .txt{color:#79839A}
+  .sent.off .txt{text-decoration:line-through;opacity:.34}
+  .sent.off .dot{background:#2A3140;box-shadow:none}
+
+
+
+  /* ---------- 金字塔（带支撑关系，不是三层货架） ---------- */
+  .pyr2{--ln:rgba(255,255,255,.16);margin-top:22px}
+  .bx{border-radius:10px;padding:11px 14px;font-size:13.5px;line-height:1.6;text-align:center;
+    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:#DDE3EF}
+  .bx .why{display:block;font-size:10.5px;margin-top:5px;letter-spacing:.03em;opacity:.8}
+  .bx.said{background:rgba(127,224,192,.1);border-color:rgba(127,224,192,.42);color:#B6E8D6}
+  .bx.mis{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#9AA4B8}
+  .bx.mis .why{color:#8FB6FF}
+  .bx.no{background:transparent;border:1px dashed rgba(255,138,70,.55);color:#FF8A46;font-style:italic}
+  .bx.no .why{color:#8C6247;font-style:normal}
+
+  .apex{max-width:340px;margin:0 auto;position:relative;font-size:15.5px;font-weight:600;
+    background:rgba(255,233,176,.13);border-color:rgba(255,233,176,.5);color:#FFF3D2}
+  .apex.no{background:transparent;border:1px dashed rgba(255,138,70,.6);color:#FF8A46;font-weight:600}
+  .apex::after{content:"";position:absolute;left:50%;bottom:-20px;width:1px;height:20px;background:var(--ln)}
+  .cols{display:flex;gap:20px;margin-top:20px;position:relative}
+  .cols::before{content:"";position:absolute;top:-20px;left:var(--half,25%);right:var(--half,25%);height:1px;background:var(--ln)}
+  .col{flex:1;position:relative;display:flex;flex-direction:column;gap:12px}
+  .col::before{content:"";position:absolute;top:-20px;left:50%;width:1px;height:20px;background:var(--ln)}
+  .evs{display:flex;flex-direction:column;gap:8px;padding-left:16px;position:relative}
+  .evs::before{content:"";position:absolute;left:6px;top:-6px;bottom:10px;width:1px;background:var(--ln)}
+  .evs .bx{text-align:left;font-size:12.5px;padding:9px 12px}
+  .pyr-key{display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:11px;color:var(--dim)}
+  .pyr-key span{display:inline-flex;align-items:center;gap:6px}
+  .pyr-key span::before{content:"";width:9px;height:9px;border-radius:2px;border:1px solid}
+  .k-said::before{background:rgba(127,224,192,.35);border-color:rgba(127,224,192,.6)}
+  .k-mis::before{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}
+  .k-no::before{background:transparent;border-color:#FF8A46;border-style:dashed}
+  @media(max-width:600px){ .cols{flex-direction:column;gap:26px} .cols::before{display:none} }
+
+  /* 改好的版本 —— 结果页唯一可以带走的东西 */
+  .rw-text{margin-top:18px;font-size:clamp(16px,2.2vw,19px);line-height:2.05;color:#F4F7FD}
+  .rw-text p+p{margin-top:16px}
+  .rw-text .glue{color:#79839A;text-decoration:underline;text-decoration-color:rgba(255,255,255,.2);
+    text-underline-offset:4px}
+  .rw-text .miss{color:#FF8A46;font-style:italic;font-size:.9em}
+  .rw-meta{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);
+    font-size:13px;color:var(--muted);line-height:1.9}
+  .rw-meta b{color:var(--star);font-weight:600;font-variant-numeric:tabular-nums}
+
+  .gaps li{list-style:none;font-size:14px;color:var(--muted);padding:9px 0 9px 18px;position:relative;line-height:1.8}
+  .gaps li::before{content:"";position:absolute;left:0;top:17px;width:5px;height:5px;border-radius:50%;background:#FF8A46}
+
+  .cite{font-size:11.5px;color:var(--dim);line-height:1.95;margin-top:26px;text-align:center}
+  .disclaimer{margin-top:34px;padding:14px 18px;border:1px dashed rgba(255,255,255,.13);
+    border-radius:12px;font-size:12px;color:var(--dim);line-height:1.85;text-align:center}
+  @media(max-width:560px){
+    .wrap{padding:0 17px}
+    .hud{gap:12px}.meter-num{font-size:34px}
+    .panel{padding:19px}
+    .stats{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div id="vignette"></div>
+<div id="scrim"></div>
+<div id="loading"><div class="lo-dot"></div><p id="loadText">正在听……</p></div>
+
+<div class="stack">
+
+<!-- ================= LANDING ================= -->
+<section id="landing" class="screen on">
+  <div class="wrap">
+    <p class="eyebrow">暗夜表达 · Dark Sky Speech</p>
+    <h1 class="title" style="margin-top:22px">说完整的一段。<br>看看对方<em>接住</em>了多少。</h1>
+    <p class="sub">
+      面试自我介绍，或者向老板争取一件事。<br>
+      你说的每一句，会被判成信息，还是噪音。<br>
+      判据是金字塔原理，不是我们的主观感受。
+    </p>
+    <div class="actions">
+      <button class="btn" id="go">开始说</button>
+      <button class="btn ghost" id="goDemo">不方便出声？看别人的</button>
+    </div>
+    <p class="foot-note">
+      判据：金字塔原理（结论先行）· 麦肯锡电梯法则
+    </p>
+  </div>
+</section>
+
+<!-- ================= PICKER ================= -->
+<section id="picker" class="screen">
+  <div class="wrap" style="padding-top:74px;padding-bottom:80px">
+    <p class="eyebrow">选一个场景</p>
+    <div class="tabs" id="tabs"></div>
+    <h2 class="prompt" id="prompt"></h2>
+    <div class="panel" style="margin-top:24px">
+      <h4>说出来，或者写下来</h4>
+      <p class="hint">原型阶段先用文字。正式版这里是麦克风，说完之后按真实时间轴回放。</p>
+      <textarea id="own" placeholder=""></textarea>
+      <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn sm" id="goOwn">看看它的结构</button>
+        <button class="btn ghost sm" id="goSample">没想好？看一个真实的翻车样本</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STAGE ================= -->
+<section id="stage" class="screen">
+  <div class="wrap hud">
+    <div class="scene" id="sceneName">—</div>
+    <div class="clock">
+      <b id="tNow">0.0</b>
+      <span>SECONDS</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="legend">
+      <span class="lg lg-core">结论与诉求</span>
+      <span class="lg lg-fact">证据 · 事实与数据</span>
+      <span class="lg lg-self">在讲自己</span>
+      <span class="lg lg-back">铺垫</span>
+      <span class="lg lg-fill">口头禅</span>
+      <span class="lg lg-void">正确的废话</span>
+    </div>
+    <p class="legend-note">同一个口头禅说到第 3 次，会被划出来并标上次数 —— 那时它不再是口头禅，是在抢注意力。</p>
+    <div class="script" id="script"></div>
+  </div>
+
+
+  <div class="wrap">
+    <div class="stage-foot">
+      <button class="btn ghost sm" id="replay">重放</button>
+      <button class="btn ghost sm" id="skip">直接看结果</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESULT ================= -->
+<section id="result" class="screen">
+  <div class="wrap">
+    <div class="verdict">
+      <p class="eyebrow" id="rScene">—</p>
+      <p class="headline" id="rHead"></p>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel">
+      <h4>金字塔 · 你说的话该怎么站</h4>
+      <p class="hint">同样这些句子，按金字塔原理归位。虚线格子是你没说的那部分。</p>
+      <div id="pyr2"></div>
+      <div class="pyr-key">
+        <span class="k-said">你真的说了</span>
+        <span class="k-mis">说了，但没挂在理由下面</span>
+        <span class="k-no">整个没说</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>改好的版本</h4>
+      <p class="hint" id="rwHint"></p>
+      <div class="rw-text" id="rwText"></div>
+      <p class="rw-meta" id="rwMeta"></p>
+    </div>
+
+
+
+    <div class="panel">
+      <h4>逐句回看</h4>
+      <p class="hint">点任意一句可以把它关掉，上面的数字和改好的版本会跟着变。</p>
+      <div id="sents"></div>
+    </div>
+
+    <div class="panel" id="gapPanel">
+      <h4>结构漏洞</h4>
+      <p class="hint">依据金字塔原理判定，与文采无关。</p>
+      <ul class="gaps" id="gaps"></ul>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap">
+      <button class="btn" id="shot">生成分享图</button>
+      <button class="btn ghost" id="again">换一段</button>
+    </div>
+
+    <p class="cite">
+      Bortle Scale · John E. Bortle, Sky &amp; Telescope, 2001<br>
+      金字塔原理 · Barbara Minto｜电梯法则 · McKinsey &amp; Company
+    </p>
+
+    <div class="disclaimer">
+      原型 v1：句子角色为预置标注（自定义文本走本地启发式规则），未接入语音识别与 LLM 分类。<br>
+      此版本仅用于验证视觉、隐喻与交互是否成立。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* ============================================================
+   0. 语料（预置标注）
+   role: CLAIM / EVIDENCE / ASK  = 信号（点亮一颗星）
+         BACKGROUND / PROCESS / FILLER / PLATITUDE = 噪音（光污染）
+   ============================================================ */
+const SIGNAL = new Set(['CLAIM','EVIDENCE','ASK']);
+const ROLE_CN = {
+  CLAIM:'断言', EVIDENCE:'证据', ASK:'诉求',
+  BACKGROUND:'铺垫', PROCESS:'表功', FILLER:'口头禅', PLATITUDE:'正确的废话'
+};
+
+const CORPUS = [
+  { id:'intro', name:'面试自我介绍', entry:true,
+    prompt:'假设你正坐在面试间里。介绍你自己。',
+    desc:'说了快两分钟。结论压在第 80 秒——电梯法则给的窗口是 30 秒。',
+    sents:[
+      ['嗯，面试官好，那我先简单介绍一下自己','FILLER'],
+      ['名字简历上都有，我就不重复了','FILLER'],
+      ['我是 2015 年毕业的，学的是新闻传播','BACKGROUND'],
+      ['当时其实挺想进电视台的，家里也希望我考编','BACKGROUND'],
+      ['后来阴差阳错去了一家报社，做了两年多的深度报道','BACKGROUND'],
+      ['那两年挺辛苦的，一个月有半个月在外面出差','PROCESS'],
+      ['经常改稿改到半夜，那时候是真拼','PROCESS'],
+      ['后来传统媒体大家也知道，整体不太行了','PLATITUDE'],
+      ['我就转到了互联网，先去了一家做知识付费的公司','BACKGROUND'],
+      ['在那边主要做内容运营，也带过一个小团队','PROCESS'],
+      ['中间还跳过一次槽，去了一家电商公司','BACKGROUND'],
+      ['那家公司当时正好在做直播，我也跟着做了半年','PROCESS'],
+      ['说实话这几年挺折腾的，也走过不少弯路','PLATITUDE'],
+      ['中间有过一段时间比较迷茫，不知道该往哪走','BACKGROUND'],
+      ['我这个人吧，性格比较随和，跟同事关系一直都不错','PLATITUDE'],
+      ['抗压能力也还可以，加班什么的我不太在意','PROCESS'],
+      ['我英语还行，之前还兼职做过一段时间翻译','BACKGROUND'],
+      ['学习能力我觉得是我比较大的一个优势','PLATITUDE'],
+      ['反正就是那种，什么活都能接的类型','FILLER'],
+      ['嗯……然后就是，我做的事情其实一直是一件','FILLER'],
+      ['就是把内容变成生意','CLAIM'],
+      ['在上一家公司，我把品牌号从 0 做到了 40 万粉','EVIDENCE'],
+      ['那年从内容来的自然咨询，占了全年营收的三成','EVIDENCE'],
+      ['我关心的一直不是涨粉，是涨粉之后能不能成交','CLAIM'],
+      ['如果你们现在缺的正是把内容跑通到成交这一段，我们可以聊','ASK'],
+      ['大概就是这样吧，谢谢','FILLER']
+    ],
+    pyramid:{
+      conclusion:{ text:'我做的事是把内容变成生意，而且能跑通到成交', said:20 },
+      reasons:[
+        { text:'我能把量做起来', said:null,
+          evidence:[ {text:'品牌号从 0 做到 40 万粉', said:21},
+                     {text:'带过内容运营的小团队', said:9, misframed:'当成经历说了'} ] },
+        { text:'量能真的变成收入', said:23,
+          evidence:[ {text:'自然咨询占全年营收三成', said:22},
+                     {text:'（没有说成交额或转化率）', said:null} ] }
+      ]
+    },
+    better:'我做的事情其实一直是一件：把内容变成生意。\n\n具体是两块。一块是把量做起来——在上一家公司，我把品牌号从 0 做到了 40 万粉，中间也带过一个内容运营的小团队。另一块是让这些量真的能变成收入，那一年从内容进来的自然咨询，占了全年营收的三成。\n\n我之前在报社做过两年深度报道，所以对内容本身怎么写、怎么让人读下去，还算有点底子。\n\n如果你们现在缺的正是把内容跑通到成交这一段，我们可以再聊得细一点。'
+  },
+  { id:'claim', name:'向上争取',
+    prompt:'你要向老板争取一件事。加薪、加人，或者一笔预算。',
+    desc:'铺垫了 44 秒才说出第一句有信息量的话，最后一句又自己把诉求收了回去。',
+    sents:[
+      ['老板，那个，现在方便吗，占用您几分钟','FILLER'],
+      ['是这样，我来公司差不多两年半了','BACKGROUND'],
+      ['一开始是做投放，后来内容那块也接过来了','BACKGROUND'],
+      ['这两年确实挺拼的，基本没休过完整的假','PROCESS'],
+      ['去年年底那波大促，我连着两周住在公司附近','PROCESS'],
+      ['中间团队走了两个人，我一个人顶了小半年','PROCESS'],
+      ['我知道招人流程也不容易，那边也一直在推','PLATITUDE'],
+      ['我不是那种爱提要求的人，您知道的','FILLER'],
+      ['我也理解今年公司整体不容易','PLATITUDE'],
+      ['就是……我最近看了一下同岗位的行情','BACKGROUND'],
+      ['说实话心里多少有点想法','PLATITUDE'],
+      ['我负责的这条线，今年做到了全公司营收的四成','EVIDENCE'],
+      ['新客成本也从 42 块压到了 27 块','EVIDENCE'],
+      ['想跟您聊聊我的薪资','ASK'],
+      ['当然如果实在不方便，我们改天再说也行','PLATITUDE']
+    ],
+    pyramid:{
+      conclusion:{ text:'我应该涨薪', said:null },
+      reasons:[
+        { text:'我承担的范围已经超出了岗位', said:null,
+          evidence:[ {text:'团队走了两个人，我顶了小半年', said:5, misframed:'当成表功说了'},
+                     {text:'投放和内容两块都归我', said:2, misframed:'当成铺垫说了'} ] },
+        { text:'这条线的产出是实的', said:null,
+          evidence:[ {text:'占全公司营收的四成', said:11},
+                     {text:'新客成本从 42 压到 27', said:12} ] }
+      ]
+    },
+    better:'老板，想跟您聊聊我的薪资，这件事我考虑挺久了。\n\n主要是两件事。一是我现在承担的范围已经超出了原来的岗位——团队走了两个人之后，投放和内容两块都是我一个人在顶，顶了小半年。二是这条线今年的产出：占了全公司营收的四成，新客成本也从 42 块压到了 27 块。\n\n我知道今年整体不容易，所以也不是想让您现在就给答复。您看能不能定个时间，我们把这件事正式过一下？'
+  }
+];
+
+/* ============================================================
+   1. 本地启发式（自定义文本用）—— 纯规则，零网络
+   ============================================================ */
+const RX = {
+  FILLER:    /^(嗯|呃|那个|就是|然后|反正|总之|所以说|你懂的|怎么说呢|大家好|各位好|面试官好|老板)/,
+  CLOSING:   /(说这么多|就这些|讲完了|说完了|以上就是|谢谢|辛苦了|打扰了|您看行吗|大概就是这样|就这样吧)/,
+  ASK:       /(希望|想申请|申请|建议|需要|能不能|可不可以|麻烦|请你|请您|可以聊|聊聊|想跟您|想和您|争取|给我们|批一下)/,
+  EVIDENCE:  /[0-9０-９]|百分之|[一二三四五六七八九十两]成|翻倍|[一二三四五六七八九十两百千万]+倍/,
+  PLATITUDE: /(不错|挺好|还行|有进展|不容易|加油|会更好|仁者见仁|因人而异|个人觉得|个人感觉|尽力|尽量|再说|也行|看情况|能理解|我理解|都很紧|添麻烦|不想麻烦|不想给)/,
+  PROCESS:   /(加班|辛苦|跟了|沟通了|排查|试了|换过|退过|想了很多办法|努力|折腾|熬夜|挺拼|顶了|轮岗|在扛|扛了|盯数据|周末也|一个人在)/,
+  CLAIM:     /(就一件|其实就|关键在|关键是|问题是|核心是|我认为|我的判断|区别就|原因是|说白了|本质上|做的事情|顶不住|撑不住|来不及|做不到|卡在|只有一个|就一个)/,
+  BACKGROUND:/(最近|一直|之前|以前|当初|一开始|后来|毕业|那时候|其实我|我是.*人|念的是|来公司)/
+};
+/* 年份、月份、年龄不是数据——不去掉它们，"2018 年毕业的" 会被当成证据点亮一颗星 */
+const stripCount = s => s.replace(/(19|20)\d{2}\s*年?|\d+\s*(年|月|日|号|岁|届|个月|周|天)/g,'');
+
+function guessRole(s, i, total){
+  const bare = s.replace(/[，。、！？…\s]/g,'');
+  if(RX.CLOSING.test(s) || RX.FILLER.test(s) || bare.length<=5) return 'FILLER';
+  if(RX.PLATITUDE.test(s)) return 'PLATITUDE';
+  if(RX.ASK.test(s)) return 'ASK';
+  if(RX.EVIDENCE.test(stripCount(s))) return 'EVIDENCE';
+  if(RX.PROCESS.test(s)) return 'PROCESS';
+  if(RX.CLAIM.test(s)) return 'CLAIM';
+  if(RX.BACKGROUND.test(s)) return 'BACKGROUND';
+  // 兜底判成断言的门槛要高——短碎片撑不起一个"可被反对的主张"，宁可漏判不可错判
+  return (i > total*0.62 && bare.length>=14) ? 'CLAIM' : 'BACKGROUND';
+}
+function splitCN(text){
+  return text.replace(/\s+/g,'').split(/(?<=[。！？!?；;…])|(?<=，)(?=.{14,})/)
+    .map(s=>s.replace(/[。，！？!?；;]+$/,'').trim()).filter(s=>s.length>1);
+}
+
+/* ============================================================
+   2. 计算模型
+   ============================================================ */
+const ELEVATOR = 30;   // 电梯法则：结论应当在开口后 30 秒内出现
+const CPS = 4.5;                       // 中文语速常量：4.5 字 / 秒
+
+
+function build(sents){
+  let t=0, out=[];
+  sents.forEach(([text,role],i)=>{
+    const dur = Math.max(0.9, text.length/CPS);
+    out.push({ i, text, role, sig:SIGNAL.has(role), t0:t, t1:t+dur, chars:text.length, off:false });
+    t += dur + 0.28;
+  });
+  return { list:out, total:t };
+}
+
+
+function score(list){
+  const on = list.filter(s=>!s.off);
+  const nc = on.filter(s=>!s.sig).reduce((a,s)=>a+s.chars,0);
+  const tc = on.reduce((a,s)=>a+s.chars,0) || 1;
+  const sig = on.filter(s=>s.sig);
+  return { noiseChars:nc, totalChars:tc, signals:sig, firstSig:sig[0]||null };
+}
+/* ============================================================
+   词级标注：一句话里哪几个词属于哪一类
+   优先级 fact > fill > self，重叠时高优先级赢
+   ============================================================ */
+const WORD = [
+  { k:'fact', re:/[0-9０-９]+(?:\.[0-9]+)?%?(?:\s*(?:万|亿|块|元|倍|个点|人|天))?|[一二三四五六七八九十两]成半?|百分之[0-9一二三四五六七八九十]+/g },
+  { k:'fill', re:/嗯+|呃+|那个|就是说|就是|然后|反正|总之|你懂的|怎么说呢|对吧|是吧|说实话|其实|这个吧|我这个人吧/g },
+  { k:'self', re:/我们团队|我们|我自己|我个人|我这个人|我/g }
+];
+/* 同一个口头禅说到第三次，就不再只是口头禅，是冗余——它开始抢注意力 */
+const REPEAT_AT = 3;
+
+function markup(text, fillCount){
+  const n = text.length;
+  const lane = new Array(n).fill(null);
+  WORD.forEach(({k,re})=>{
+    re.lastIndex = 0;
+    let m;
+    while((m = re.exec(text))){
+      for(let i=m.index; i<m.index+m[0].length; i++) if(!lane[i]) lane[i]=k;
+      if(m[0].length===0) re.lastIndex++;
+    }
+  });
+  let out='', i=0;
+  while(i<n){
+    const k = lane[i];
+    let j=i; while(j<n && lane[j]===k) j++;
+    const seg = text.slice(i,j).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    if(!k) out += seg;
+    else if(k==='fill'){
+      const c = (fillCount[seg]||0)+1; fillCount[seg]=c;
+      out += c>=REPEAT_AT
+        ? `<span class="m-rep">${seg}<sup>×${c}</sup></span>`
+        : `<span class="m-fill">${seg}</span>`;
+    }
+    else out += `<span class="m-${k}">${seg}</span>`;
+    i=j;
+  }
+  return out;
+}
+
+/* 整句的分量：决定这一行整体的亮度和标签颜色 */
+const LN_CLASS = {
+  CLAIM:'core', ASK:'core', EVIDENCE:'fact',
+  PROCESS:'self', FILLER:'fill', PLATITUDE:'void', BACKGROUND:'back'
+};
+
+/* 改好的版本：不生成新句子，只把用户自己的话按金字塔顺序重排。
+   缺的部分留空位并标出来——那是他下次要补的东西，不是我们替他写的东西。 */
+/* 把句子归位到金字塔的三层 */
+function pyramidOf(list){
+  const on     = list.filter(s=>s.sig && !s.off);
+  const claims = on.filter(s=>s.role==='CLAIM');
+  return {
+    conclusion: claims[0] || null,          // 顶层：结论
+    ask:        on.find(s=>s.role==='ASK') || null,
+    reasons:    claims.slice(1),            // 中层：理由
+    evidence:   on.filter(s=>s.role==='EVIDENCE')   // 底层：证据
+  };
+}
+
+/* 照着金字塔从上往下念，串成一段能直接说出口的话。
+   连接词是补的（标灰），事实、数字、诉求一个字都不改。 */
+function rewriteOf(list){
+  const P = pyramidOf(list);
+  const out=[];
+  const own  = t=>out.push({t, k:'own'});
+  const glue = t=>out.push({t, k:'glue'});
+  const miss = t=>out.push({t, k:'miss'});
+
+  if(P.conclusion) own(P.conclusion.text + '。');
+  else miss('［缺一句结论：你想让对方接受的，到底是什么？］');
+
+  if(P.reasons.length){
+    glue('原因是，');
+    P.reasons.forEach((r,i)=> own(r.text + (i<P.reasons.length-1 ? '；' : '。')));
+  }
+
+  if(P.evidence.length){
+    glue(P.reasons.length ? '具体来说，' : '支撑它的是，');
+    P.evidence.forEach((e,i)=> own(e.text + (i<P.evidence.length-1 ? '；' : '。')));
+  } else miss('［缺一条证据：有没有数字或事实，让对方不必只靠信任？］');
+
+  if(P.ask){ glue('所以，'); own(P.ask.text + '。'); }
+  else miss('［缺一句诉求：你要对方做什么？］');
+
+  return out;
+}
+
+function findGaps(list){
+  const on=list.filter(s=>!s.off), g=[];
+  const sig=on.filter(s=>s.sig);
+  const first=sig[0];
+  if(!sig.some(s=>s.role==='CLAIM'||s.role==='EVIDENCE'))
+    g.push('全程没有出现一个可以被反对的具体断言 — 对方无从判断你说的对不对。');
+  else if(first && first.t0 > ELEVATOR)
+    g.push(`第一个有信息量的句子出现在第 ${first.t0.toFixed(1)} 秒。电梯法则要求结论在 30 秒内出现。`);
+  const askIdx = on.findIndex(s=>s.role==='ASK');
+  if(askIdx < 0)
+    g.push('从头到尾没有提出任何诉求 — 对方听完不知道要做什么。');
+  else {
+    // 「向上争取」的签名失败：话说出口了，又自己收回去
+    const RETRACT=/(改天|下次再说|不方便|算了|也行|随便您|您考虑|不着急|没关系|当我没说)/;
+    if(on.slice(askIdx+1).some(s=>RETRACT.test(s.text)))
+      g.push('你提出了诉求，然后在下一句里把它收了回去 — 对方会顺着台阶下。');
+  }
+  if(!on.some(s=>s.role==='EVIDENCE'))
+    g.push('没有出现任何数字或具体事实 — 断言悬空，只能靠信任接受。');
+  const bg=on.filter(s=>s.role==='BACKGROUND'||s.role==='PROCESS').reduce((a,s)=>a+s.chars,0);
+  const tc=on.reduce((a,s)=>a+s.chars,0)||1;
+  if(bg/tc > .35)
+    g.push(`铺垫与表功占了 ${Math.round(bg/tc*100)}% 的篇幅 — 金字塔原理建议控制在 35% 以内。`);
+  const fl=on.filter(s=>s.role==='FILLER').length;
+  if(fl>=3) g.push(`${fl} 句纯口头禅。它们不增加信息，只占用对方的注意力。`);
+  return g;
+}
+
+/* ============================================================
+   3. 星空渲染
+   ============================================================ */
+const cv = document.getElementById('sky'), ctx = cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+let BG=[], MW=[], CITY=[];
+function seedSky(){
+  const r=rng(20260809);
+  BG=[]; for(let i=0;i<1500;i++){
+    BG.push({x:r(),y:r()*0.92,m:Math.pow(r(),2.35),ph:r()*99,sp:.6+r()*1.6,
+             c:r()<.16?(r()<.5?'190,205,255':'255,214,180'):'255,255,255'});
+  }
+  MW=[]; for(let i=0;i<420;i++){
+    const u=r();
+    // 越靠近带中心越密、越亮
+    const g=(r()+r()+r())/3-.5;
+    MW.push({u, off:g*.20, rr:.012+r()*.042, a:(.028+r()*.055)*(1-Math.abs(g)*1.4)});
+  }
+  CITY=[]; let x=-.03;
+  while(x<1.05){ const w=.02+r()*.07, h=.015+Math.pow(r(),1.9)*.11;
+    CITY.push({x,w,h,seed:r()}); x+=w+ .004+r()*.014; }
+}
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  W=cv.clientWidth; H=cv.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+seedSky(); addEventListener('resize',resize); resize();
+
+let pollNow=0, pollTarget=0;         // 0..1
+let showLabels=true;
+/* ---------- 星空下生长的树 ----------
+   每一句有信息量的话长出一根枝。结论是主干。
+   结论没出现之前，枝条是漂着的——没有可以挂上去的东西。 */
+let stars=[];              // 枝：{role,label,born,x,y,fx,fy,tx,ty,side}
+let trunk=0;               // 主干生长进度 0..1
+let treeActive=false;      // 开口之后，塔尖的位置就一直在那儿等
+const SHOW_TREE=false;     // 树先关掉——现在用逐行陈列做可视化
+const SCATTER=[[.20,.34],[.76,.27],[.38,.56],[.84,.50],[.14,.60],[.60,.24],[.30,.20],[.68,.62]];
+
+function addStar(label, role){
+  const n=stars.length, s=SCATTER[n%8];
+  const fx=s[0]+(Math.random()-.5)*.05, fy=s[1]+(Math.random()-.5)*.05;
+  stars.push({role, label, born:performance.now(), on:true,
+              x:fx, y:fy, fx, fy, tx:fx, ty:fy, side:(n%2?1:-1)});
+  layoutTree();
+}
+
+/* 有结论 → 主干立起来，枝条各归各位；没有 → 全部回到漂浮位置 */
+function layoutTree(){
+  const apex = stars.find(s=>s.on && (s.role==='CLAIM'||s.role==='ASK'));
+  const branches = stars.filter(s=>s.on && s!==apex);
+  if(apex){
+    apex.tx=.5; apex.ty=.30;
+    branches.forEach((b,i)=>{
+      const t=(i+.6)/(branches.length+.2);
+      b.ty = .38 + t*.34;
+      b.tx = .5 + b.side * (.11 + .07*(i%3));
+      b.joinY = b.ty - .03;                    // 接到主干上的高度
+    });
+  } else {
+    stars.forEach(s=>{ s.tx=s.fx; s.ty=s.fy; s.joinY=null; });
+  }
+  return !!apex;
+}
+
+function paint(ts){
+  const p=pollNow;
+  ctx.clearRect(0,0,W,H);
+
+  // base
+  const base=ctx.createLinearGradient(0,0,0,H);
+  base.addColorStop(0,'#03050c'); base.addColorStop(1,'#060a13');
+  ctx.fillStyle=base; ctx.fillRect(0,0,W,H);
+
+  // milky way (fades out fast with pollution)
+  const mwA=Math.max(0,1-p*2.6);
+  if(mwA>.01){
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.translate(W*.5,H*.42); ctx.rotate(-.42); ctx.translate(-W*.5,-H*.42);
+    MW.forEach(b=>{
+      if(b.a<=0) return;
+      const x=b.u*W*1.5-W*.25, y=H*.42+b.off*H, r=b.rr*Math.max(W,H)*1.6;
+      const g=ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,`rgba(150,168,214,${b.a*mwA})`);
+      g.addColorStop(.5,`rgba(112,132,190,${b.a*mwA*.3})`);
+      g.addColorStop(1,'rgba(85,105,175,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,6.3); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  // background stars
+  const thr=Math.pow(p,.82)*.985;
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  BG.forEach(s=>{
+    let a=(s.m-thr)/.14; if(a<=0) return; a=Math.min(1,a);
+    const tw=.72+.28*Math.sin(ts*.001*s.sp+s.ph);
+    const R=(.32+s.m*1.18);
+    ctx.fillStyle=`rgba(${s.c},${a*tw*.95})`;
+    ctx.beginPath(); ctx.arc(s.x*W,s.y*H,R,0,6.3); ctx.fill();
+  });
+  ctx.restore();
+
+  // ---------- 树 ----------
+  if(SHOW_TREE){
+  const apex = stars.find(s=>s.on && (s.role==='CLAIM'||s.role==='ASK'));
+  trunk += ((apex?1:0) - trunk) * 0.045;
+
+  // 位置缓动：结论一出现，漂着的枝条就往主干上归位
+  stars.forEach((st,i)=>{
+    const wob = apex ? 0 : Math.sin(ts*.0006 + i*1.7)*.006;
+    st.x += (st.tx - st.x)*.055;
+    st.y += (st.ty + wob - st.y)*.055;
+  });
+
+  const cx=W*.5, baseY=H*.92;
+  if(trunk>.01 && apex){
+    ctx.save();
+    const ay=apex.y*H;
+    // 主干
+    const g=ctx.createLinearGradient(0,baseY,0,ay);
+    g.addColorStop(0,`rgba(255,233,176,${.05*trunk})`);
+    g.addColorStop(.45,`rgba(255,225,160,${.30*trunk})`);
+    g.addColorStop(1,`rgba(255,244,210,${.62*trunk})`);
+    ctx.strokeStyle=g; ctx.lineWidth=1.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx,baseY);
+    ctx.lineTo(cx, ay + (baseY-ay)*(1-trunk));
+    ctx.stroke();
+    // 枝
+    ctx.lineWidth=1; ctx.strokeStyle=`rgba(255,225,160,${.26*trunk})`;
+    stars.forEach(st=>{
+      if(!st.on || st===apex || st.joinY==null) return;
+      const jy=st.joinY*H, x=st.x*W, y=st.y*H;
+      ctx.beginPath(); ctx.moveTo(cx,jy);
+      ctx.quadraticCurveTo(cx+(x-cx)*.45, jy+(y-jy)*.15, x, y);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // 结论没出现 → 塔尖的位置空着，虚线框在那儿等
+  if(trunk<.12 && treeActive){
+    const a=(1-trunk/.12)*.5, x=cx, y=H*.30;
+    ctx.save();
+    ctx.strokeStyle=`rgba(140,152,176,${a})`; ctx.lineWidth=1; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.arc(x,y,14,0,6.3); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='500 11.5px ui-sans-serif,"PingFang SC",sans-serif';
+    ctx.fillStyle=`rgba(140,152,176,${a})`; ctx.textAlign='left';
+    ctx.fillText('结论还没出现', x+24, y+4.5);
+    ctx.restore();
+  }
+
+  // 枝头的光点
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  stars.forEach(st=>{
+    if(!st.on) return;
+    const age=Math.min(1,(ts-st.born)/900);
+    const e=1-Math.pow(1-age,3);
+    const x=st.x*W, y=st.y*H;
+    const isApex = st===apex;
+    const tw=.86+.14*Math.sin(ts*.0018+st.x*40);
+    const R=(2.0+2.4*e)*tw*(isApex?1.55:1);
+    const g=ctx.createRadialGradient(x,y,0,x,y,R*13);
+    g.addColorStop(0,`rgba(255,246,220,${.95*e})`);
+    g.addColorStop(.14,`rgba(255,225,160,${.42*e})`);
+    g.addColorStop(1,'rgba(255,200,110,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,R*13,0,6.3); ctx.fill();
+    // flare
+    ctx.strokeStyle=`rgba(255,240,200,${.34*e})`; ctx.lineWidth=1;
+    const L=R*7*(.6+.4*tw);
+    ctx.beginPath(); ctx.moveTo(x-L,y); ctx.lineTo(x+L,y);
+    ctx.moveTo(x,y-L); ctx.lineTo(x,y+L); ctx.stroke();
+    ctx.fillStyle=`rgba(255,252,240,${e})`;
+    ctx.beginPath(); ctx.arc(x,y,R,0,6.3); ctx.fill();
+  });
+  ctx.restore();
+
+  // labels (normal composite) — 结果页关掉，避免压住数据
+  if(showLabels) stars.forEach(st=>{
+    if(!st.on) return;
+    const age=Math.min(1,(ts-st.born)/1400); if(age<.35) return;
+    const a=(age-.35)/.65;
+    const x=st.x*W, y=st.y*H;
+    ctx.font='500 11.5px ui-sans-serif,"PingFang SC",sans-serif';
+    ctx.fillStyle=`rgba(255,233,176,${.62*a})`;
+    ctx.textAlign = st.x>.72 ? 'right' : 'left';
+    ctx.fillText(st.label, st.x>.72 ? x-16 : x+16, y+4.5);
+  });
+  } // end SHOW_TREE
+
+  // skyglow dome
+  if(p>.004){
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    const g=ctx.createLinearGradient(0,H,0,H*.12);
+    g.addColorStop(0,`rgba(255,146,66,${.50*p})`);
+    g.addColorStop(.18,`rgba(233,132,74,${.30*p})`);
+    g.addColorStop(.52,`rgba(150,120,130,${.13*p})`);
+    g.addColorStop(1,'rgba(80,90,140,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // overall haze
+    ctx.fillStyle=`rgba(126,138,186,${.075*p})`; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  // skyline
+  ctx.fillStyle='#010206';
+  CITY.forEach(b=>{
+    const bx=b.x*W, bw=b.w*W, bh=b.h*H;
+    ctx.fillRect(bx,H-bh,bw,bh);
+  });
+  CITY.forEach(b=>{
+    const bx=b.x*W, bw=b.w*W, bh=b.h*H;
+    const r=rng(Math.floor(b.seed*1e6));
+    const cols=Math.max(1,Math.floor(bw/9)), rows=Math.max(1,Math.floor(bh/11));
+    for(let cx=0;cx<cols;cx++) for(let cy=0;cy<rows;cy++){
+      if(r() > .10+p*.62) continue;
+      ctx.fillStyle=`rgba(255,196,120,${.28+p*.5})`;
+      ctx.fillRect(bx+4+cx*9, H-bh+6+cy*11, 3, 4);
+    }
+  });
+
+  pollNow += (pollTarget-pollNow)*0.055;
+  requestAnimationFrame(paint);
+}
+requestAnimationFrame(paint);
+
+/* ============================================================
+   4. 流程
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const screens=['landing','picker','stage','result'];
+function show(id){
+  screens.forEach(s=>$(s).classList.toggle('on', s===id));
+  $('scrim').classList.toggle('on', id==='result'||id==='picker');
+  showLabels = (id==='stage');
+  window.scrollTo(0,0);
+}
+
+// meter ticks
+
+
+// 场景切换
+let curScene = CORPUS[0];
+const PLACEHOLDER = {
+  intro:'比如：嗯，大家好，我先简单介绍一下自己，我是 2015 年毕业的……',
+  claim:'比如：老板，那个，占用您五分钟可以吗，是这样，我来公司差不多两年半了……'
+};
+$('tabs').innerHTML = CORPUS.map(c=>
+  `<button class="tab" data-id="${c.id}">${c.name}</button>`).join('');
+function setScene(id){
+  curScene = CORPUS.find(c=>c.id===id);
+  [...$('tabs').children].forEach(b=>b.classList.toggle('on', b.dataset.id===id));
+  $('prompt').textContent = curScene.prompt;
+  $('own').placeholder = PLACEHOLDER[id] || '';
+}
+$('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab'); if(b) setScene(b.dataset.id);
+});
+setScene(CORPUS[0].id);
+
+$('go').onclick     = ()=>{ setScene(CORPUS[0].id); show('picker'); };
+$('goDemo').onclick  = ()=>{ setScene(CORPUS[0].id); runScene(CORPUS[0]); };
+$('goSample').onclick= ()=> runScene(curScene);
+
+/* ============================================================
+   接分析引擎。挂了就退回本地规则 + 预置结构，绝不给用户看报错页。
+   ============================================================ */
+async function analyze(scenarioId, texts){
+  const r = await fetch('/api/analyze', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ scenarioId, sentences: texts.map(text=>({text})) })
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const j = await r.json();
+  if(j.degraded || !j.pyramid) throw new Error(j.error || 'degraded');
+  return j;
+}
+
+const LOADING = ['正在听……','在找你的结论','在看这些话怎么站'];
+let loadTimer=null;
+function showLoading(on){
+  $('loading').classList.toggle('on', on);
+  clearInterval(loadTimer);
+  if(on){
+    let i=0; $('loadText').textContent=LOADING[0];
+    loadTimer=setInterval(()=>{ i=(i+1)%LOADING.length; $('loadText').textContent=LOADING[i]; }, 2200);
+  }
+}
+
+/** 跑一个预置场景：先问引擎，引擎不通就用打包好的那份 */
+async function runScene(scene){
+  showLoading(true);
+  try{
+    const res = await analyze(scene.id, scene.sents.map(s=>s[0]));
+    start(scene.sents.map((s,i)=>[s[0], res.roles[i] || s[1]]),
+          { name:scene.name, pyramid:res.pyramid, better:res.better });
+  }catch(e){
+    start(scene.sents, scene);          // 预置语料自带完整结构，降级也完整
+  }finally{ showLoading(false); }
+}
+$('again').onclick  = ()=>{ pollTarget=0; stars=[]; trunk=0; treeActive=false; show('picker'); };
+$('goOwn').onclick  = async ()=>{
+  const raw=$('own').value.trim();
+  if(raw.length<20){ $('own').focus(); $('own').placeholder='至少写 20 个字，太短看不出结构。'; return; }
+  if(raw.length>1500){ $('own').focus(); alert('最多 1500 字，你有 '+raw.length+' 字'); return; }
+  const parts=splitCN(raw);
+  showLoading(true);
+  try{
+    const res = await analyze(curScene.id, parts);
+    start(parts.map((s,i)=>[s, res.roles[i] || 'BACKGROUND']),
+          { name:curScene.name, pyramid:res.pyramid, better:res.better });
+  }catch(e){
+    // 引擎不通 —— 退回本地规则，逐行标注照常，金字塔和重写会自己说明做不到
+    start(parts.map((s,i)=>[s, guessRole(s,i,parts.length)]), null);
+  }finally{ showLoading(false); }
+};
+
+let SESSION=null, timer=null, raf=null;
+
+function start(sents, spec){
+  SESSION = build(sents); SESSION.spec = spec || null;
+  stars=[]; trunk=0; pollTarget=0; pollNow=0;
+  show('stage'); run();
+}
+
+/* 逐行陈列：说过的话不消失，一行一行往下累积 */
+let fillTally={};
+function pushLine(s){
+  const d=document.createElement('div');
+  d.className='ln '+(LN_CLASS[s.role]||'');
+  d.innerHTML=`<span class="tag">${ROLE_CN[s.role]}</span>`
+            + `<span class="tx">${markup(s.text, fillTally)}</span>`;
+  const box=$('script');
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function run(){
+  cancelAnimationFrame(raf);
+  const { list, total } = SESSION;
+  stars=[]; trunk=0; treeActive=false; pollTarget=0; pollNow=0;
+  $('result').classList.remove('on');
+  $('scrim').classList.remove('on');
+  showLabels=true; window.scrollTo({top:0,behavior:'smooth'});
+  const t0=performance.now(), SPEED=2.6;
+  let shown=-1;
+  $('script').innerHTML=''; fillTally={};
+  $('sceneName').textContent = (curScene && curScene.name) || '你说的话';
+
+  function tick(now){
+    const t=(now-t0)/1000*SPEED;
+    $('tNow').textContent=Math.min(t,total).toFixed(1);
+
+    let idx=-1;
+    for(let i=0;i<list.length;i++) if(t>=list[i].t0) idx=i;
+
+    if(idx>shown && idx>=0){
+      for(let i=shown+1;i<=idx;i++){
+        const s=list[i];
+        if(s.sig) addStar(s.text.length>10 ? s.text.slice(0,10)+'…' : s.text, s.role);
+        pushLine(s);
+      }
+      shown=idx;
+    }
+
+    if(t<total+.6) raf=requestAnimationFrame(tick);
+    else finish();
+  }
+  raf=requestAnimationFrame(tick);
+}
+$('replay').onclick=run;
+$('skip').onclick=()=>{ cancelAnimationFrame(raf); finish(); };
+
+function finish(){
+  cancelAnimationFrame(raf);
+  const { list, total } = SESSION;
+  stars=[];
+  list.filter(s=>s.sig).forEach(s=>addStar(s.text.length>10?s.text.slice(0,10)+'…':s.text, s.role));
+
+  // 「直接看结果」会跳过播放，这里把光谱带一次补全
+  // 「直接看结果」会跳过播放，这里把逐行陈列一次补全
+  if($('script').children.length < list.length){
+    $('script').innerHTML=''; fillTally={};
+    list.forEach(s=>pushLine(s));
+  }
+  renderResult();
+  // 不切页：结果原地接在播放页下面，天空留在原处
+  $('result').classList.add('on');
+  $('scrim').classList.add('on');
+  showLabels=false;
+  requestAnimationFrame(()=>$('result').scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+/* -------- result -------- */
+
+function renderResult(){
+  const { list, total, spec } = SESSION;
+  const sc = score(list);
+
+  const fs = sc.firstSig;
+  $('rScene').textContent = (spec && spec.name) || '你说的话';
+  $('rHead').innerHTML = fs
+    ? (fs.t0 > ELEVATOR
+        ? `你说了 ${total.toFixed(0)} 秒。<br>第一句有信息量的话，出现在第 <b>${fs.t0.toFixed(0)}</b> 秒。`
+        : `你说了 ${total.toFixed(0)} 秒。<br>第一句有信息量的话，出现在第 <span class="ok">${fs.t0.toFixed(0)}</span> 秒。`)
+    : `你说了 ${total.toFixed(0)} 秒。<br><b>没有一句话带来了新信息。</b>`;
+
+  const bg = list.filter(s=>!s.off && (s.role==='BACKGROUND'||s.role==='PROCESS'))
+                 .reduce((a,s)=>a+s.chars,0);
+  const pct = Math.round(bg/(sc.totalChars||1)*100);
+  $('stats').innerHTML = `
+    <div class="stat"><b>${total.toFixed(0)}s</b><span>你说了多久</span></div>
+    <div class="stat"><b class="${fs&&fs.t0<=ELEVATOR?'good':'warn'}">${fs?'第 '+fs.t0.toFixed(0)+' 秒':'从未'}</b><span>第一句有信息量的话</span></div>
+    <div class="stat"><b class="${pct>35?'warn':''}">${pct}%</b><span>铺垫与表功占了</span></div>`;
+
+  $('sents').innerHTML = list.map(s=>`
+    <div class="sent${s.off?' off':''}" data-i="${s.i}" data-k="${s.sig?'sig':'noise'}">
+      <div class="dot"></div>
+      <div class="txt">${s.text}</div>
+      <div class="rl">${ROLE_CN[s.role]}</div>
+    </div>`).join('');
+
+  renderRewrite();
+  const g=findGaps(list);
+  $('gapPanel').style.display = g.length ? '' : 'none';
+  $('gaps').innerHTML = g.map(x=>`<li>${x}</li>`).join('');
+}
+
+const esc = t => t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* 一个节点三种状态：真的说了 / 说了但没挂在理由下面 / 整个没说 */
+function nodeBox(n, extraCls=''){
+  const cls = n.said==null ? 'no' : (n.misframed ? 'mis' : 'said');
+  const why = n.said==null ? '你没说过这句'
+            : n.misframed ? `你说了 — 但${n.misframed}，没挂在理由下面`
+            : '';
+  return `<div class="bx ${cls} ${extraCls}">${esc(n.text)}`
+       + (why?`<span class="why">${why}</span>`:'') + `</div>`;
+}
+
+function renderPyramid(){
+  const spec = SESSION.spec && SESSION.spec.pyramid;
+  const host = $('pyr2');
+  if(!spec){
+    host.innerHTML = `<div class="bx no" style="text-align:left">
+      要画出真正的金字塔，必须判断「哪一句在支撑哪一句」——这是语义关系，本地规则做不到。
+      <span class="why">原型阶段只有两条预置语料带完整结构；自定义文本要等接入分析引擎。</span></div>`;
+    return;
+  }
+  const P = spec, n = P.reasons.length;
+  const cols = P.reasons.map(r=>
+    `<div class="col">${nodeBox(r)}
+       <div class="evs">${r.evidence.map(e=>nodeBox(e)).join('')}</div>
+     </div>`).join('');
+  host.innerHTML =
+    `<div class="pyr2">
+       ${nodeBox(P.conclusion,'apex')}
+       <div class="cols" style="--n:${n}">${cols}</div>
+     </div>`;
+  // 顶部横线只连到各列的中心（用自定义属性，别动容器本身的定位）
+  host.querySelector('.cols').style.setProperty('--half', (100/(2*n))+'%');
+}
+
+function renderRewrite(){
+  const { list, total, spec } = SESSION;
+  renderPyramid();
+
+  if(spec && spec.better){
+    $('rwHint').innerHTML = '事实、数字、诉求一个字没改。改的是顺序、措辞和分寸 —— '
+      + '结论提到第一句，理由变成显性的，最后给对方留了余地。';
+    $('rwText').innerHTML = spec.better.split('\n\n').map(p=>`<p>${esc(p)}</p>`).join('');
+    const P = spec.pyramid;
+    const first = list.filter(s=>s.sig && !s.off)[0];
+    const saidR = P.reasons.filter(r=>r.said!=null).length;
+    $('rwMeta').innerHTML =
+      `原来：第一句有信息量的话在第 <b>${first?first.t0.toFixed(0):'—'}</b> 秒，`
+      + `显性的理由 <b>${saidR}</b> 条，证据散在各处没有归属。<br>`
+      + `现在：结论在<b>第一句</b>，<b>${P.reasons.length}</b> 条理由是显性的，每条下面挂着自己的证据。`
+      + `<br><span style="color:var(--dim)">字数从 ${total?Math.round(total*CPS):0} 压到 ${spec.better.replace(/\s/g,'').length} —— `
+      + `但短不是目的，说得进去才是。</span>`;
+  } else {
+    $('rwHint').textContent = '这一版还没接入重写引擎。';
+    $('rwText').innerHTML = '<p style="color:#8C93A6">自定义文本目前只做逐句标注，完整的重写需要接入模型。</p>';
+    $('rwMeta').textContent = '';
+  }
+}
+
+function refresh(){
+  const { list } = SESSION;
+  const sc = score(list);
+  const fs = sc.firstSig;
+  const bg = list.filter(s=>!s.off && (s.role==='BACKGROUND'||s.role==='PROCESS'))
+                 .reduce((a,s)=>a+s.chars,0);
+  $('stats').children[1].querySelector('b').textContent = fs?'第 '+fs.t0.toFixed(0)+' 秒':'从未';
+  $('stats').children[2].querySelector('b').textContent = Math.round(bg/(sc.totalChars||1)*100)+'%';
+  renderRewrite();
+  const g=findGaps(list);
+  $('gapPanel').style.display=g.length?'':'none';
+  $('gaps').innerHTML=g.map(x=>`<li>${x}</li>`).join('');
+}
+
+$('sents').addEventListener('click',e=>{
+  const el=e.target.closest('.sent'); if(!el) return;
+  const s=SESSION.list[+el.dataset.i];
+  s.off=!s.off; el.classList.toggle('off',s.off);
+  refresh();
+});
+
+
+
+/* -------- 分享图 1080×1350 -------- */
+$('shot').onclick=()=>{
+  const w=1080,h=1350, c=document.createElement('canvas');
+  c.width=w; c.height=h; const x=c.getContext('2d');
+  const { list, total, spec } = SESSION;
+  const fs = score(list).firstSig;
+
+  x.fillStyle='#04060d'; x.fillRect(0,0,w,h);
+  x.drawImage(cv, 0,0,cv.width,cv.height, 0,0,w,h*0.5);
+  const fade=x.createLinearGradient(0,h*0.24,0,h*0.5);
+  fade.addColorStop(0,'rgba(4,6,13,0)'); fade.addColorStop(1,'#04060d');
+  x.fillStyle=fade; x.fillRect(0,h*0.24,w,h*0.26);
+
+  x.textAlign='center';
+  x.fillStyle='#5A6478'; x.font='500 26px ui-sans-serif,"PingFang SC",sans-serif';
+  x.fillText((spec&&spec.name)||'一段话', w/2, h*0.40);
+
+  x.fillStyle='#EAEEF7'; x.font='600 52px ui-sans-serif,"PingFang SC",sans-serif';
+  x.fillText(`我说了 ${total.toFixed(0)} 秒。`, w/2, h*0.50);
+  x.fillText('第一句有信息量的话', w/2, h*0.565);
+
+  const grd=x.createLinearGradient(0,h*0.60,0,h*0.72);
+  grd.addColorStop(0,'#FFD79A'); grd.addColorStop(1,'#FF8A46');
+  x.fillStyle=grd; x.font='600 170px ui-sans-serif,"PingFang SC",sans-serif';
+  x.fillText(fs?`第 ${fs.t0.toFixed(0)} 秒`:'从未出现', w/2, h*0.71);
+
+  x.fillStyle='#828EA6'; x.font='400 30px ui-sans-serif,"PingFang SC",sans-serif';
+  x.fillText('金字塔原理：结论先行', w/2, h*0.79);
+  x.fillText('电梯法则：结论应当在 30 秒内出现', w/2, h*0.835);
+
+  x.strokeStyle='rgba(255,255,255,.1)'; x.beginPath();
+  x.moveTo(w*0.2,h*0.885); x.lineTo(w*0.8,h*0.885); x.stroke();
+
+  x.fillStyle='#4A5568'; x.font='400 26px ui-sans-serif,"PingFang SC",sans-serif';
+  x.fillText('暗夜表达 · 看看你的话，别人听进去了多少', w/2, h*0.935);
+
+  const a=document.createElement('a');
+  a.download=`暗夜表达_${fs?fs.t0.toFixed(0)+'秒':'无结论'}.png`;
+  a.href=c.toDataURL('image/png'); a.click();
+};</script>
+</body>
+</html>

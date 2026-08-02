@@ -1,0 +1,137 @@
+{
+  "note": "标准答案由人工标注（2026-08-01 初标，2026-08-01 依据模型 diff 修正 5 处：职责描述归 BACKGROUND，自我评价归 PLATITUDE）。模型不需要逐字复现，但结构必须命中。 第 19 句由 FILLER 改为 CLAIM —— 它与第 20 句本是一句，被断句器切开了。 第 7 句由 PLATITUDE 改为 BACKGROUND —— 它是职业线的转折交代，不讲履历就断了。",
+  "cases": [
+    {
+      "scenarioId": "claim",
+      "name": "向上争取",
+      "sentences": [
+        "老板，那个，现在方便吗，占用您几分钟",
+        "是这样，我来公司差不多两年半了",
+        "一开始是做投放，后来内容那块也接过来了",
+        "这两年确实挺拼的，基本没休过完整的假",
+        "去年年底那波大促，我连着两周住在公司附近",
+        "中间团队走了两个人，我一个人顶了小半年",
+        "我知道招人流程也不容易，那边也一直在推",
+        "我不是那种爱提要求的人，您知道的",
+        "我也理解今年公司整体不容易",
+        "就是……我最近看了一下同岗位的行情",
+        "说实话心里多少有点想法",
+        "我负责的这条线，今年做到了全公司营收的四成",
+        "新客成本也从 42 块压到了 27 块",
+        "想跟您聊聊我的薪资",
+        "当然如果实在不方便，我们改天再说也行"
+      ],
+      "gold": {
+        "roles": [
+          "FILLER",
+          "BACKGROUND",
+          "BACKGROUND",
+          "PROCESS",
+          "PROCESS",
+          "PROCESS",
+          "PLATITUDE",
+          "PLATITUDE",
+          "PLATITUDE",
+          "BACKGROUND",
+          "PLATITUDE",
+          "EVIDENCE",
+          "EVIDENCE",
+          "ASK",
+          "PLATITUDE"
+        ],
+        "conclusionSaid": null,
+        "reasonCount": 2,
+        "reasonsInferred": 2,
+        "evidenceIndices": [
+          2,
+          5,
+          11,
+          12
+        ],
+        "mustAppearInBetter": [
+          "四成",
+          "42",
+          "27",
+          "薪资"
+        ],
+        "betterMinChars": 120
+      }
+    },
+    {
+      "scenarioId": "intro",
+      "name": "面试自我介绍",
+      "sentences": [
+        "嗯，面试官好，那我先简单介绍一下自己",
+        "名字简历上都有，我就不重复了",
+        "我是 2015 年毕业的，学的是新闻传播",
+        "当时其实挺想进电视台的，家里也希望我考编",
+        "后来阴差阳错去了一家报社，做了两年多的深度报道",
+        "那两年挺辛苦的，一个月有半个月在外面出差",
+        "经常改稿改到半夜，那时候是真拼",
+        "后来传统媒体大家也知道，整体不太行了",
+        "我就转到了互联网，先去了一家做知识付费的公司",
+        "在那边主要做内容运营，也带过一个小团队",
+        "中间还跳过一次槽，去了一家电商公司",
+        "那家公司当时正好在做直播，我也跟着做了半年",
+        "说实话这几年挺折腾的，也走过不少弯路",
+        "中间有过一段时间比较迷茫，不知道该往哪走",
+        "我这个人吧，性格比较随和，跟同事关系一直都不错",
+        "抗压能力也还可以，加班什么的我不太在意",
+        "我英语还行，之前还兼职做过一段时间翻译",
+        "学习能力我觉得是我比较大的一个优势",
+        "反正就是那种，什么活都能接的类型",
+        "嗯……然后就是，我做的事情其实一直是一件",
+        "就是把内容变成生意",
+        "在上一家公司，我把品牌号从 0 做到了 40 万粉",
+        "那年从内容来的自然咨询，占了全年营收的三成",
+        "我关心的一直不是涨粉，是涨粉之后能不能成交",
+        "如果你们现在缺的正是把内容跑通到成交这一段，我们可以聊",
+        "大概就是这样吧，谢谢"
+      ],
+      "gold": {
+        "roles": [
+          "FILLER",
+          "FILLER",
+          "BACKGROUND",
+          "BACKGROUND",
+          "BACKGROUND",
+          "PROCESS",
+          "PROCESS",
+          "BACKGROUND",
+          "BACKGROUND",
+          "BACKGROUND",
+          "BACKGROUND",
+          "BACKGROUND",
+          "PLATITUDE",
+          "BACKGROUND",
+          "PLATITUDE",
+          "PLATITUDE",
+          "BACKGROUND",
+          "PLATITUDE",
+          "PLATITUDE",
+          "CLAIM",
+          "CLAIM",
+          "EVIDENCE",
+          "EVIDENCE",
+          "CLAIM",
+          "ASK",
+          "FILLER"
+        ],
+        "conclusionSaid": 20,
+        "reasonCount": 2,
+        "reasonsInferred": 1,
+        "evidenceIndices": [
+          21,
+          22
+        ],
+        "mustAppearInBetter": [
+          "40 万",
+          "三成",
+          "内容",
+          "报社"
+        ],
+        "betterMinChars": 280
+      }
+    }
+  ]
+}
