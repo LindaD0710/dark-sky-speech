@@ -95,14 +95,19 @@
   .rec{display:none;align-items:center;gap:18px;flex-wrap:wrap;margin-top:18px;padding:16px 18px;
     background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:16px}
   .rec.on{display:flex}
-  .mic{display:inline-flex;align-items:center;gap:10px;flex:none;cursor:pointer;font-family:inherit;
-    font-size:15px;padding:12px 24px;border-radius:999px;transition:.24s;
-    border:1px solid rgba(255,233,176,.45);background:rgba(255,233,176,.08);color:var(--star)}
-  .mic:hover{background:rgba(255,233,176,.16)}
-  .mic .ico{width:10px;height:10px;border-radius:50%;background:currentColor}
-  .mic.rec-on{border-color:rgba(255,120,90,.6);background:rgba(255,120,90,.12);color:#FF8A6A}
-  .mic.rec-on .ico{border-radius:2px;animation:pulse 1.3s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  /* 麦克风是一个控件，不是按钮 —— 页面上唯一的文字按钮是「开始分析」 */
+  .mic{width:60px;height:60px;flex:none;cursor:pointer;border-radius:50%;
+    display:grid;place-items:center;transition:.24s;
+    border:1px solid rgba(255,233,176,.4);background:rgba(255,233,176,.07);color:var(--star)}
+  .mic:hover{background:rgba(255,233,176,.15);border-color:rgba(255,233,176,.7)}
+  .mic .g-mic{width:26px;height:26px}
+  .mic .g-stop{display:none;width:17px;height:17px;border-radius:4px;background:currentColor}
+  .mic.rec-on{border-color:rgba(255,120,90,.65);background:rgba(255,120,90,.14);color:#FF8A6A;
+    box-shadow:0 0 0 0 rgba(255,120,90,.45);animation:recPulse 1.6s ease-out infinite}
+  .mic.rec-on .g-mic{display:none}
+  .mic.rec-on .g-stop{display:block}
+  @keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(255,120,90,.42)}
+    70%{box-shadow:0 0 0 16px rgba(255,120,90,0)}100%{box-shadow:0 0 0 0 rgba(255,120,90,0)}}
   .rec-meta{font-size:13px;color:var(--dim);line-height:1.6}
   .rec-meta b{font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:3px}
   .rec-meta em{display:block;font-style:normal;margin-top:2px}
@@ -332,10 +337,17 @@
       <p class="hint guide-get" id="guideGet"></p>
 
       <div class="rec" id="recBox">
-        <button class="mic" id="mic"><span class="ico"></span><span id="micLabel">说给它听</span></button>
+        <button class="mic" id="mic" aria-label="录音">
+          <svg class="g-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10.5a7 7 0 0 0 14 0"/><path d="M12 17.5V21"/>
+          </svg>
+          <span class="g-stop"></span>
+        </button>
         <div class="rec-meta">
           <b id="recTime">0.0</b><span>秒</span>
-          <em id="recTip">说完点「说完了」，字会落到下面，可以改完再分析</em>
+          <em id="recTip">点一下，开始说</em>
         </div>
       </div>
 
@@ -1058,11 +1070,12 @@ function recStop(){
   try{ rec.stop(); }catch(e){}
   rec=null; clearInterval(recTimer);
   $('mic').classList.remove('rec-on');
-  $('micLabel').textContent='重新说一遍';
   if(heard.length){
-    // 明确指向下一步 —— 不然用户不知道录完了要干嘛
+    // 状态写在提示语里，不再用第二个按钮标签跟「开始分析」抢
     $('recTip').innerHTML='识别有出入可以直接改，然后点 <b>开始分析</b>';
     $('goOwn').classList.add('next');
+  }else{
+    $('recTip').textContent='没听到，再试一次';
   }
 }
 
@@ -1089,14 +1102,14 @@ function startRec(){
   rec.onerror=ev=>{
     recStop();
     $('recTip').textContent = ev.error==='not-allowed'
-      ? '麦克风没授权 —— 直接把话写在下面也一样。'
-      : '刚才没听清，再试一次，或者写在下面。';
+      ? '麦克风没授权 —— 直接把话写在下面也一样'
+      : '刚才没听清，再试一次，或者写在下面';
   };
   rec.onend=()=>{ if(rec) recStop(); };
   try{ rec.start(); }catch(e){ recStop(); return; }
-  $('mic').classList.add('rec-on'); $('micLabel').textContent='说完了';
+  $('mic').classList.add('rec-on');
   $('goOwn').classList.remove('next');
-  $('recTip').textContent='说完点一下「说完了」';
+  $('recTip').textContent='正在听 —— 说完再点一下';
   recTimer=setInterval(()=>{ $('recTime').textContent=((performance.now()-recStart)/1000).toFixed(1); },100);
 }
 
