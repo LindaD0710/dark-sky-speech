@@ -181,17 +181,19 @@
 
 
 
-  /* 对方视角：把判决换成排练 */
-  .lsn{padding:18px 0;border-bottom:1px solid rgba(255,255,255,.055)}
-  .lsn:last-child{border-bottom:0}
-  .lsn .when{font-size:11px;color:var(--dim);letter-spacing:.06em;margin-bottom:8px}
-  /* 先把原话摆出来，再给反应 —— 不能让人回去翻自己说了什么 */
-  .lsn .mine{font-size:15px;line-height:1.75;color:#79839A;
-    padding-left:15px;border-left:2px solid rgba(255,255,255,.12)}
-  .lsn .his{display:flex;gap:10px;margin-top:12px;align-items:flex-start}
-  .lsn .his .arrow{flex:none;color:#4E5D78;font-size:15px;margin-top:4px}
-  .lsn .his .say{font-size:16.5px;line-height:1.85;color:#DCE3F0}
-  .lsn .his .say b{color:#FFD79A;font-weight:normal}
+  /* 对方视角：把判决换成排练。
+     只在顶上留一句当钩子，其余贴到「逐句回看」里对应的句子下面 ——
+     不能拿一整屏挡住金字塔和改好的版本。 */
+  #hook{margin-top:20px;padding:18px 22px;border-radius:16px;
+    background:rgba(255,215,130,.06);border:1px solid rgba(255,215,130,.16)}
+  #hook .who{font-size:11px;letter-spacing:.16em;color:var(--dim);margin-bottom:9px}
+  #hook .say{font-size:clamp(16px,2.1vw,19px);line-height:1.8;color:#F0E4CB}
+  #hook .say b{color:#FFD79A;font-weight:normal}
+
+  .sent .react{margin:10px 0 2px 20px;padding-left:14px;
+    border-left:2px solid rgba(255,215,130,.28);
+    font-size:14px;line-height:1.8;color:#C4B79C}
+  .sent .react span{color:#6E7688}
 
   /* ---------- 金字塔（带支撑关系，不是三层货架） ---------- */
   .pyr2{--ln:rgba(255,255,255,.16);margin-top:22px}
@@ -335,12 +337,7 @@
     </div>
 
     <div class="stats" id="stats"></div>
-
-    <div class="panel" id="listenPanel">
-      <h4>对面那个人在想什么</h4>
-      <p class="hint">不是给你打分，是替你排练一遍 —— 他听到这几处时，脑子里大概是这个反应。</p>
-      <div id="listen"></div>
-    </div>
+    <div id="hook"></div>
 
     <div class="panel">
       <h4>金字塔 · 你说的话该怎么站</h4>
@@ -1081,10 +1078,13 @@ function renderResult(){
     <div class="stat"><b class="${fs&&fs.t0<=ELEVATOR?'good':'warn'}">${fs?'第 '+fs.t0.toFixed(0)+' 秒':'从未'}</b><span>第一句有信息量的话</span></div>
     <div class="stat"><b class="${pct>35?'warn':''}">${pct}%</b><span>铺垫与表功占了</span></div>`;
 
+  // 对方的反应贴在它针对的那一句下面 —— 在上下文里读，不用回去翻
+  const react = {};
+  ((spec && spec.listener) || []).forEach(l=>{ if(l.at!=null) react[l.at] = l.text; });
   $('sents').innerHTML = list.map(s=>`
     <div class="sent${s.off?' off':''}" data-i="${s.i}" data-k="${s.sig?'sig':'noise'}">
       <div class="dot"></div>
-      <div class="txt">${s.text}</div>
+      <div class="txt">${s.text}${react[s.i]?`<div class="react"><span>他心里：</span>${esc(react[s.i])}</div>`:''}</div>
       <div class="rl">${ROLE_CN[s.role]}</div>
     </div>`).join('');
 
@@ -1138,20 +1138,12 @@ function renderPyramid(){
 
 function renderListener(){
   const ls = (SESSION.spec && SESSION.spec.listener) || [];
-  const box = $('listenPanel');
+  const box = $('hook');
   if(!ls.length){ box.style.display='none'; return; }
   box.style.display='';
-  const list = SESSION.list;
-  $('listen').innerHTML = ls.map(l=>{
-    const s = (l.at!=null && list[l.at]) ? list[l.at] : null;
-    const when = s ? `第 ${s.t0.toFixed(0)} 秒 · 你说` : '这段话听完';
-    return `<div class="lsn">`
-         + `<div class="when">${when}</div>`
-         + (s ? `<div class="mine">${esc(s.text)}</div>` : '')
-         + `<div class="his"><span class="arrow">↳</span>`
-         + `<span class="say">他心里：「${esc(l.text)}」</span></div>`
-         + `</div>`;
-  }).join('');
+  const l = ls[0], s = (l.at!=null && SESSION.list[l.at]) ? SESSION.list[l.at] : null;
+  box.innerHTML = `<div class="who">${s?`他听到第 ${s.t0.toFixed(0)} 秒时`:'他听完这段时'}</div>`
+                + `<div class="say">「${esc(l.text)}」</div>`;
 }
 
 function renderRewrite(){
