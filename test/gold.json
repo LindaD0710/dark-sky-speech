@@ -1,5 +1,5 @@
 {
-  "note": "标准答案由人工标注（2026-08-01 初标，2026-08-01 依据模型 diff 修正 5 处：职责描述归 BACKGROUND，自我评价归 PLATITUDE）。模型不需要逐字复现，但结构必须命中。 第 19 句由 FILLER 改为 CLAIM —— 它与第 20 句本是一句，被断句器切开了。 第 7 句由 PLATITUDE 改为 BACKGROUND —— 它是职业线的转折交代，不讲履历就断了。",
+  "note": "标准答案由人工标注（2026-08-01 初标，2026-08-01 依据模型 diff 修正 5 处：职责描述归 BACKGROUND，自我评价归 PLATITUDE）。模型不需要逐字复现，但结构必须命中。 第 19 句由 FILLER 改为 CLAIM —— 它与第 20 句本是一句，被断句器切开了。 第 7 句由 PLATITUDE 改为 BACKGROUND —— 它是职业线的转折交代，不讲履历就断了。 2026-08-02 引入 SETUP 角色后，第 2、5 句由 BACKGROUND/PROCESS 改为 SETUP（它们是证据成立的前提）。",
   "cases": [
     {
       "scenarioId": "claim",
@@ -25,10 +25,10 @@
         "roles": [
           "FILLER",
           "BACKGROUND",
-          "BACKGROUND",
+          "SETUP",
           "PROCESS",
           "PROCESS",
-          "PROCESS",
+          "SETUP",
           "PLATITUDE",
           "PLATITUDE",
           "PLATITUDE",
@@ -54,7 +54,10 @@
           "27",
           "薪资"
         ],
-        "betterMinChars": 120
+        "betterMinChars": 120,
+        "conclusionKeywords": [
+          "薪资"
+        ]
       }
     },
     {
@@ -130,7 +133,11 @@
           "内容",
           "报社"
         ],
-        "betterMinChars": 280
+        "betterMinChars": 240,
+        "conclusionKeywords": [
+          "内容",
+          "生意"
+        ]
       }
     }
   ]

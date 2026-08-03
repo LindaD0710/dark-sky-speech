@@ -105,6 +105,7 @@
   .lg-self::before{background:#FFA36B}
   .lg-fill::before{background:#8FB6FF}
   .lg-void::before{background:#C79BFF}
+  .lg-setup::before{background:#4E8C78}
   .lg-back::before{background:#6E7688}
   .legend-note{font-size:11.5px;color:var(--dim);margin:-6px 0 16px;line-height:1.8}
 
@@ -121,6 +122,8 @@
   .ln.core .tag{color:#FFE9B0}
   .ln.fact .tx{color:#F4F7FD}
   .ln.fact .tag{color:#7FE0C0}
+  .ln.setup .tag{color:#4E8C78}
+  .ln.setup .tx{color:#C9D6D0}
   .ln.back .tag{color:#6E7688}
   .ln.self .tag{color:#FFA36B}
   .ln.fill .tag,.ln.fill .tx{color:#5E6577}
@@ -177,6 +180,16 @@
   .sent.off .dot{background:#2A3140;box-shadow:none}
 
 
+
+  /* 对方视角：把判决换成排练 */
+  .lsn{display:flex;gap:14px;align-items:flex-start;padding:15px 0;
+    border-bottom:1px solid rgba(255,255,255,.055)}
+  .lsn:last-child{border-bottom:0}
+  .lsn .when{flex:none;font-size:11px;color:var(--dim);margin-top:9px;
+    width:4.6em;text-align:right;white-space:nowrap}
+  .lsn .say{font-size:16px;line-height:1.85;color:#DCE3F0;position:relative;padding-left:20px}
+  .lsn .say::before{content:"「";position:absolute;left:0;top:-1px;color:#4E5D78;font-size:19px}
+  .lsn .say::after{content:"」";color:#4E5D78}
 
   /* ---------- 金字塔（带支撑关系，不是三层货架） ---------- */
   .pyr2{--ln:rgba(255,255,255,.16);margin-top:22px}
@@ -292,6 +305,7 @@
     <div class="legend">
       <span class="lg lg-core">结论与诉求</span>
       <span class="lg lg-fact">证据 · 事实与数据</span>
+      <span class="lg lg-setup">情境 · 证据的前提</span>
       <span class="lg lg-self">在讲自己</span>
       <span class="lg lg-back">铺垫</span>
       <span class="lg lg-fill">口头禅</span>
@@ -319,6 +333,12 @@
     </div>
 
     <div class="stats" id="stats"></div>
+
+    <div class="panel" id="listenPanel">
+      <h4>对面那个人在想什么</h4>
+      <p class="hint">不是给你打分，是替你排练一遍 —— 他听到这几处时，脑子里大概是这个反应。</p>
+      <div id="listen"></div>
+    </div>
 
     <div class="panel">
       <h4>金字塔 · 你说的话该怎么站</h4>
@@ -380,7 +400,7 @@
 const SIGNAL = new Set(['CLAIM','EVIDENCE','ASK']);
 const ROLE_CN = {
   CLAIM:'断言', EVIDENCE:'证据', ASK:'诉求',
-  BACKGROUND:'铺垫', PROCESS:'表功', FILLER:'口头禅', PLATITUDE:'正确的废话'
+  SETUP:'情境', BACKGROUND:'铺垫', PROCESS:'表功', FILLER:'口头禅', PLATITUDE:'正确的废话'
 };
 
 const CORPUS = [
@@ -564,7 +584,7 @@ function markup(text, fillCount){
 
 /* 整句的分量：决定这一行整体的亮度和标签颜色 */
 const LN_CLASS = {
-  CLAIM:'core', ASK:'core', EVIDENCE:'fact',
+  CLAIM:'core', ASK:'core', EVIDENCE:'fact', SETUP:'setup',
   PROCESS:'self', FILLER:'fill', PLATITUDE:'void', BACKGROUND:'back'
 };
 
@@ -937,7 +957,8 @@ async function runScene(scene){
   try{
     const res = await analyze(scene.id, scene.sents.map(s=>s[0]));
     start(scene.sents.map((s,i)=>[s[0], res.roles[i] || s[1]]),
-          { name:scene.name, pyramid:res.pyramid, better:res.better });
+          { name:scene.name, pyramid:res.pyramid, better:res.better,
+            listener:res.listener, applicable:res.applicable, notApplicable:res.notApplicable });
   }catch(e){
     start(scene.sents, scene);          // 预置语料自带完整结构，降级也完整
   }finally{ showLoading(false); }
@@ -952,7 +973,8 @@ $('goOwn').onclick  = async ()=>{
   try{
     const res = await analyze(curScene.id, parts);
     start(parts.map((s,i)=>[s, res.roles[i] || 'BACKGROUND']),
-          { name:curScene.name, pyramid:res.pyramid, better:res.better });
+          { name:curScene.name, pyramid:res.pyramid, better:res.better,
+            listener:res.listener, applicable:res.applicable, notApplicable:res.notApplicable });
   }catch(e){
     // 引擎不通 —— 退回本地规则，逐行标注照常，金字塔和重写会自己说明做不到
     start(parts.map((s,i)=>[s, guessRole(s,i,parts.length)]), null);
@@ -1047,7 +1069,7 @@ function renderResult(){
     ? (fs.t0 > ELEVATOR
         ? `你说了 ${total.toFixed(0)} 秒。<br>第一句有信息量的话，出现在第 <b>${fs.t0.toFixed(0)}</b> 秒。`
         : `你说了 ${total.toFixed(0)} 秒。<br>第一句有信息量的话，出现在第 <span class="ok">${fs.t0.toFixed(0)}</span> 秒。`)
-    : `你说了 ${total.toFixed(0)} 秒。<br><b>没有一句话带来了新信息。</b>`;
+    : `你说了 ${total.toFixed(0)} 秒。<br><b>对方一直在等一句能接住的话。</b>`;
 
   const bg = list.filter(s=>!s.off && (s.role==='BACKGROUND'||s.role==='PROCESS'))
                  .reduce((a,s)=>a+s.chars,0);
@@ -1085,6 +1107,13 @@ function nodeBox(n, extraCls=''){
 function renderPyramid(){
   const spec = SESSION.spec && SESSION.spec.pyramid;
   const host = $('pyr2');
+  // 有些话本来就不该套金字塔（复盘、探索性思考、状态同步）——不能指责他"没有结论"
+  if(SESSION.spec && SESSION.spec.applicable === false){
+    host.innerHTML = `<div class="bx" style="text-align:left;border-color:rgba(127,224,192,.3)">
+      这段话不适合用金字塔来量。
+      <span class="why">${esc(SESSION.spec.notApplicable||'')}　金字塔适用于有主张、需要对方做判断的表达；这段不是，所以这里不给结构诊断。</span></div>`;
+    return;
+  }
   if(!spec){
     host.innerHTML = `<div class="bx no" style="text-align:left">
       要画出真正的金字塔，必须判断「哪一句在支撑哪一句」——这是语义关系，本地规则做不到。
@@ -1105,8 +1134,23 @@ function renderPyramid(){
   host.querySelector('.cols').style.setProperty('--half', (100/(2*n))+'%');
 }
 
+function renderListener(){
+  const ls = (SESSION.spec && SESSION.spec.listener) || [];
+  const box = $('listenPanel');
+  if(!ls.length){ box.style.display='none'; return; }
+  box.style.display='';
+  const list = SESSION.list;
+  $('listen').innerHTML = ls.map(l=>{
+    const s = (l.at!=null && list[l.at]) ? list[l.at] : null;
+    const when = s ? `第 ${s.t0.toFixed(0)} 秒` : '';
+    return `<div class="lsn"><span class="when">${when}</span>`
+         + `<span class="say">${esc(l.text)}</span></div>`;
+  }).join('');
+}
+
 function renderRewrite(){
   const { list, total, spec } = SESSION;
+  renderListener();
   renderPyramid();
 
   if(spec && spec.better){

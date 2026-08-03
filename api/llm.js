@@ -67,6 +67,7 @@ export function parseJSON(text) {
  */
 export function looksBroken(out) {
   if (!out) return '没有输出';
+  if (out.applicable === false) return null;   // 本来就不该套金字塔，别重跑
   const p = out.pyramid;
   if (!p?.conclusion?.text) return '没有结论';
   if (!Array.isArray(p.reasons) || p.reasons.length < 2) return '理由少于 2 条';
@@ -96,7 +97,7 @@ export async function analyzeWithRetry({ system, user, sentences, model }) {
 export function normalize(raw, sentences) {
   const n = sentences.length;
   const ok = i => (Number.isInteger(i) && i >= 0 && i < n) ? i : null;
-  const ROLE = new Set(['CLAIM','ASK','EVIDENCE','BACKGROUND','PROCESS','PLATITUDE','FILLER']);
+  const ROLE = new Set(['CLAIM','ASK','EVIDENCE','SETUP','BACKGROUND','PROCESS','PLATITUDE','FILLER']);
 
   const roles = new Array(n).fill('BACKGROUND');
   (raw?.segments || []).forEach(s => {
@@ -106,7 +107,9 @@ export function normalize(raw, sentences) {
 
   const p = raw?.pyramid || {};
   const node = x => x && typeof x.text === 'string' && x.text.trim()
-    ? { text: x.text.trim(), said: ok(x.said), ...(x.misframed ? { misframed: String(x.misframed) } : {}) }
+    ? { text: x.text.trim(), said: ok(x.said),
+        ...(x.misframed ? { misframed: String(x.misframed) } : {}),
+        ...(Array.isArray(x.setup) ? { setup: x.setup.map(ok).filter(i => i !== null) } : {}) }
     : null;
 
   const pyramid = {
@@ -124,5 +127,17 @@ export function normalize(raw, sentences) {
 
   const better = typeof raw?.better === 'string' ? raw.better.trim() : '';
 
-  return { roles, pyramid, better };
+  // 对方视角：说反应不说评价。越界的（出现"你没有""你应该"）直接丢掉
+  const listener = (Array.isArray(raw?.listener) ? raw.listener : [])
+    .map(l => (l && typeof l.text === 'string' && l.text.trim())
+      ? { at: ok(l.at), text: l.text.trim() } : null)
+    .filter(l => l && !/^你(没有|应该|需要|不该)/.test(l.text))
+    .slice(0, 4);
+
+  const applicable = raw?.applicable !== false;
+
+  return {
+    roles, pyramid, better, listener, applicable,
+    notApplicable: applicable ? null : (typeof raw?.notApplicable === 'string' ? raw.notApplicable : '这段话不适合用金字塔来量')
+  };
 }

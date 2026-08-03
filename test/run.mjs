@@ -115,15 +115,28 @@ async function runCase(cs) {
   const CONDESCEND = /(我们可以聊|我可以来|我可以考虑一下你们|可以给你们一个机会|我们聊聊看)/;
   const condescending = !needsGap && CONDESCEND.test(out.better);
 
-  // 结论先行 —— 产品的立身之本。结论必须出现在开头，不能被履历顶到后面去
-  const head = flat(out.better).slice(0, 45);
-  const cFlat = flat(out.pyramid.conclusion.text);
-  let conclusionFirst = false;
-  for (let i = 0; i + 6 <= cFlat.length; i++) {
-    if (head.includes(cFlat.slice(i, i + 6))) { conclusionFirst = true; break; }
+  // 结论先行 —— 产品的立身之本。
+  // 用关键词判，不做字面全匹配：模型换个措辞表达同一个结论，不该算它错。
+  const firstPara = flat(out.better.split(/\n\n+/)[0] || '');
+  const head = flat(out.better).slice(0, 60);
+  const kws = g.conclusionKeywords || [];
+  let conclusionFirst = kws.length
+    ? kws.some(k => firstPara.includes(flat(k)))
+    : false;
+  if (!conclusionFirst) {           // 没给关键词就退回字面匹配
+    const cFlat = flat(out.pyramid.conclusion.text);
+    for (let i = 0; i + 6 <= cFlat.length; i++) {
+      if (head.includes(cFlat.slice(i, i + 6))) { conclusionFirst = true; break; }
+    }
   }
 
-  const betterOK = invented.length === 0 && missing.length === 0 && conclusionFirst
+  // 诉求要有 What/When —— 「想请您考虑一下」这种对方可以永远考虑下去
+  const VAGUE = /(考虑一下|再想想|有空(的时候)?聊|看看吧|再说吧|方便的时候)/;
+  const CONCRETE = /(这周|下周|本周|周[一二三四五]|明天|几分钟|半小时|定个时间|安排.*时间|定个|过一下)/;
+  // 向上争取：诉求必须落到具体动作或时间上，不能只有一个「希望您考虑」
+  const vagueAsk = needsGap && (VAGUE.test(out.better) || !CONCRETE.test(out.better));
+
+  const betterOK = invented.length === 0 && missing.length === 0 && conclusionFirst && !vagueAsk
                 && !retracted && !recycled.length && !meta && !bledOver && !condescending
                 && (!needsGap || gapAsk)
                 && out.better.length >= g.betterMinChars && paras >= 2;
@@ -141,6 +154,7 @@ async function runCase(cs) {
   console.log(`  证据归了位    ${mark(evidenceOK && everyReasonHasEv)}  命中 ${foundEv.length}/${g.evidenceIndices.length}${everyReasonHasEv?'':C.r+'  有理由是空的'+C.x}`);
   const tooShort = out.better.length < g.betterMinChars;
   console.log(`  改好的版本    ${mark(betterOK)}  ${out.better.length} 字，${paras} 段${tooShort?C.r+`  太短了（下限 ${g.betterMinChars}）`+C.x:''}`);
+  if (vagueAsk)         console.log(`      ${C.r}诉求没落到具体动作或时间上 —— 对方可以无限期「考虑」下去${C.x}`);
   if (!conclusionFirst) console.log(`      ${C.r}结论没在开头 —— 前 45 个字里找不到它，这正是原话的病${C.x}`);
   if (invented.length) console.log(`      ${C.r}编造了原话里没有的数字：${invented.join('、')}${C.x}`);
   if (missing.length)  console.log(`      ${C.y}丢了关键内容：${missing.join('、')}${C.x}`);
