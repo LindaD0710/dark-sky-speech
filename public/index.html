@@ -89,6 +89,24 @@
   /* 用户反馈：不知道该输入什么、也不知道会得到什么 */
   .tabs .more{align-self:center;font-size:12.5px;color:var(--dim);margin-left:4px}
   .guide-get{padding-left:14px;border-left:2px solid rgba(255,233,176,.3);color:#9AA4B8!important;margin-top:12px!important}
+  /* 语音输入。浏览器不支持或拒授权时整块隐藏，文字路径照常可用 */
+  .rec{display:none;align-items:center;gap:18px;margin-top:18px;padding:16px 18px;
+    background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:16px}
+  .rec.on{display:flex}
+  .mic{display:inline-flex;align-items:center;gap:10px;flex:none;cursor:pointer;font-family:inherit;
+    font-size:15px;padding:12px 24px;border-radius:999px;transition:.24s;
+    border:1px solid rgba(255,233,176,.45);background:rgba(255,233,176,.08);color:var(--star)}
+  .mic:hover{background:rgba(255,233,176,.16)}
+  .mic .ico{width:10px;height:10px;border-radius:50%;background:currentColor}
+  .mic.rec-on{border-color:rgba(255,120,90,.6);background:rgba(255,120,90,.12);color:#FF8A6A}
+  .mic.rec-on .ico{border-radius:2px;animation:pulse 1.3s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .rec-meta{font-size:13px;color:var(--dim);line-height:1.6}
+  .rec-meta b{font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:3px}
+  .rec-meta em{display:block;font-style:normal;margin-top:2px}
+  .rec-live{margin-top:14px;font-size:15px;line-height:1.8;color:#9AA4B8;min-height:1.8em}
+  .rec-live b{color:#F0F3FA;font-weight:normal}
+
   textarea{
     width:100%;min-height:132px;margin-top:16px;background:rgba(0,0,0,.4);color:var(--ink);
     border:1px solid var(--line);border-radius:14px;padding:16px;font-family:inherit;
@@ -265,10 +283,10 @@
 <section id="landing" class="screen on">
   <div class="wrap">
     <p class="eyebrow">AI 职场表达训练</p>
-    <h1 class="title" style="margin-top:22px">说完整的一段。<br>看看对方<em>记住</em>了多少。</h1>
+    <h1 class="title" style="margin-top:22px">看见自己的表达。<br>再把它练得<em>有影响力</em>。</h1>
     <p class="sub">
       面试自我介绍，或者向老板争取一件事。<br>
-      说完，AI 告诉你他记住了什么、漏掉了什么，<br>
+      说一遍给 AI 听，它告诉你对方记住了什么、漏掉了什么，<br>
       再给你一版能直接说出口的。
     </p>
     <div class="actions">
@@ -289,9 +307,18 @@
     <div class="tabs" id="tabs"></div>
     <h2 class="prompt" id="prompt"></h2>
     <div class="panel" style="margin-top:24px">
-      <h4>粘一段你真要说的话</h4>
+      <h4>说给它听，或者写下来</h4>
       <p class="hint" id="guideWhat"></p>
       <p class="hint guide-get" id="guideGet"></p>
+
+      <div class="rec" id="recBox">
+        <button class="mic" id="mic"><span class="ico"></span><span id="micLabel">开始说</span></button>
+        <div class="rec-meta">
+          <b id="recTime">0.0</b><span>秒</span>
+          <em id="recTip">说完点一下停止，AI 按你真实的语速分析</em>
+        </div>
+      </div>
+
       <textarea id="own" placeholder=""></textarea>
       <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn sm" id="goOwn">开始排练</button>
@@ -531,12 +558,16 @@ const ELEVATOR = 30;   // 电梯法则：结论应当在开口后 30 秒内出�
 const CPS = 4.5;                       // 中文语速常量：4.5 字 / 秒
 
 
+/* sents 每项是 [text, role] 或 [text, role, t0, t1]。
+   带时间戳的来自语音识别 —— 那是真实说话时间，比按 4.5 字/秒折算准得多。 */
 function build(sents){
   let t=0, out=[];
-  sents.forEach(([text,role],i)=>{
-    const dur = Math.max(0.9, text.length/CPS);
-    out.push({ i, text, role, sig:SIGNAL.has(role), t0:t, t1:t+dur, chars:text.length, off:false });
-    t += dur + 0.28;
+  sents.forEach(([text,role,t0,t1],i)=>{
+    const real = typeof t0==='number' && typeof t1==='number';
+    const dur  = real ? Math.max(.5,t1-t0) : Math.max(0.9, text.length/CPS);
+    const st   = real ? t0 : t;
+    out.push({ i, text, role, sig:SIGNAL.has(role), t0:st, t1:st+dur, chars:text.length, off:false, real });
+    t = real ? t1 : t + dur + 0.28;
   });
   return { list:out, total:t };
 }
@@ -979,20 +1010,87 @@ const toPicker = ()=>{ cancelAnimationFrame(raf); pollTarget=0; stars=[]; trunk=
                        $('result').classList.remove('on'); show('picker'); };
 $('again').onclick  = toPicker;
 $('back').onclick   = toPicker;
+/* ============================================================
+   语音输入。方案：说的时候只把字浮出来，说完一次性分析。
+   每段 isFinal 就是一句 —— 停顿本来就是中文口语的断句点，
+   而且这样能拿到真实的起止时间，比按 4.5 字/秒折算准得多。
+   ============================================================ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, recStart=0, recTimer=null, heard=[];
+
+if(SR){
+  $('recBox').classList.add('on');
+  const live=document.createElement('div');
+  live.className='rec-live'; live.id='recLive';
+  $('recBox').parentNode.insertBefore(live, $('own'));
+}else{
+  $('recTip') && ($('recTip').textContent='');
+}
+
+function recStop(){
+  if(!rec) return;
+  try{ rec.stop(); }catch(e){}
+  rec=null; clearInterval(recTimer);
+  $('mic').classList.remove('rec-on');
+  $('micLabel').textContent='重新说';
+}
+
+function startRec(){
+  heard=[]; recStart=performance.now();
+  $('recLive').innerHTML=''; $('own').value='';
+  rec=new SR();
+  rec.lang='zh-CN'; rec.continuous=true; rec.interimResults=true;
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i], t=r[0].transcript.trim();
+      if(!t) continue;
+      if(r.isFinal){
+        const now=(performance.now()-recStart)/1000;
+        const t0=heard.length?heard[heard.length-1].t1:0;
+        heard.push({ text:t, t0, t1:Math.max(t0+.5, now) });
+      }else interim+=t;
+    }
+    $('recLive').innerHTML = heard.map(h=>`<b>${esc(h.text)}</b>`).join('　')
+                           + (interim?`　${esc(interim)}…`:'');
+    $('own').value = heard.map(h=>h.text).join('，');
+  };
+  rec.onerror=ev=>{
+    recStop();
+    $('recTip').textContent = ev.error==='not-allowed'
+      ? '麦克风没授权 —— 直接把话写在下面也一样。'
+      : '刚才没听清，再试一次，或者写在下面。';
+  };
+  rec.onend=()=>{ if(rec) recStop(); };
+  try{ rec.start(); }catch(e){ recStop(); return; }
+  $('mic').classList.add('rec-on'); $('micLabel').textContent='说完了';
+  $('recTip').textContent='说完点一下「说完了」';
+  recTimer=setInterval(()=>{ $('recTime').textContent=((performance.now()-recStart)/1000).toFixed(1); },100);
+}
+
+$('mic') && ($('mic').onclick = ()=>{ rec ? recStop() : startRec(); });
+
 $('goOwn').onclick  = async ()=>{
   const raw=$('own').value.trim();
   if(raw.length<20){ $('own').focus(); $('own').placeholder='至少写 20 个字，太短看不出结构。'; return; }
   if(raw.length>1500){ $('own').focus(); alert('最多 1500 字，你有 '+raw.length+' 字'); return; }
-  const parts=splitCN(raw);
+  recStop();
+  // 说过话就用真实时间戳；否则退回按 4.5 字/秒折算
+  const spoken = heard.length && heard.map(h=>h.text).join('，')===raw;
+  const parts  = spoken ? heard.map(h=>h.text) : splitCN(raw);
   showLoading(true);
   try{
     const res = await analyze(curScene.id, parts);
-    start(parts.map((s,i)=>[s, res.roles[i] || 'BACKGROUND']),
+    start(parts.map((s,i)=>spoken
+            ? [s, res.roles[i] || 'BACKGROUND', heard[i].t0, heard[i].t1]
+            : [s, res.roles[i] || 'BACKGROUND']),
           { name:curScene.name, pyramid:res.pyramid, better:res.better,
             listener:res.listener, applicable:res.applicable, notApplicable:res.notApplicable });
   }catch(e){
     // 引擎不通 —— 退回本地规则，逐行标注照常，金字塔和重写会自己说明做不到
-    start(parts.map((s,i)=>[s, guessRole(s,i,parts.length)]), null);
+    start(parts.map((s,i)=>spoken
+            ? [s, guessRole(s,i,parts.length), heard[i].t0, heard[i].t1]
+            : [s, guessRole(s,i,parts.length)]), null);
   }finally{ showLoading(false); }
 };
 
