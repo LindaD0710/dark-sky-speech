@@ -25,9 +25,10 @@
   #vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
     background:radial-gradient(120% 80% at 50% 42%,transparent 40%,rgba(0,0,0,.55) 100%)}
   /* 结果页把天空压到后面，让数据可读——熄灯的变化仍然透得出来 */
-  #scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(2,4,10,.6);
-    opacity:0;transition:opacity .7s ease}
+  #scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(2,4,10,.62);
+    opacity:0;transition:opacity .55s ease}
   #scrim.on{opacity:1}
+  #scrim.soft{opacity:.72}
   /* 任意页面一次点击回到场景列表 —— 用户反馈：演练完只能关掉重开 */
   .back{background:transparent;border:1px solid var(--line);color:var(--muted);
     font-family:inherit;font-size:13px;padding:8px 15px;border-radius:999px;
@@ -71,11 +72,13 @@
     background:radial-gradient(closest-side,rgba(2,4,10,.82),rgba(2,4,10,.55) 52%,transparent 78%);
   }
   #landing .wrap>*{position:relative}
-  .title{font-size:clamp(38px,8.4vw,74px);line-height:1.12;font-weight:600;letter-spacing:.02em}
+  .title{font-size:clamp(29px,8.2vw,74px);line-height:1.16;font-weight:600;letter-spacing:.02em;text-wrap:balance}
   .title em{font-style:normal;color:var(--star);text-shadow:0 0 46px rgba(255,215,130,.4)}
-  .sub{margin-top:20px;color:var(--muted);font-size:clamp(14px,3.4vw,17px);line-height:1.9}
+  .sub{margin-top:20px;color:var(--muted);font-size:clamp(14px,3.4vw,17px);line-height:1.9;
+    max-width:27em;margin-left:auto;margin-right:auto;text-wrap:pretty}
   .actions{margin-top:44px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-  .foot-note{margin-top:66px;color:var(--dim);font-size:12.5px;line-height:2}
+  .foot-note{margin-top:66px;color:var(--dim);font-size:12.5px;line-height:2;
+    max-width:26em;margin-left:auto;margin-right:auto;text-wrap:pretty}
 
   /* ---------- picker ---------- */
   .tabs{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
@@ -123,7 +126,8 @@
 
   /* ---------- 逐句陈列 ---------- */
   .scene{font-size:13px;letter-spacing:.14em;color:var(--muted)}
-  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:11.5px;color:var(--dim)}
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    gap:11px 18px;margin-bottom:14px;font-size:12px;color:var(--dim)}
   .lg{display:inline-flex;align-items:center;gap:6px}
   .lg::before{content:"";width:8px;height:8px;border-radius:2px}
   .lg-core::before{background:#FFE9B0}
@@ -133,7 +137,8 @@
   .lg-void::before{background:#C79BFF}
   .lg-setup::before{background:#4E8C78}
   .lg-back::before{background:#6E7688}
-  .legend-note{font-size:11.5px;color:var(--dim);margin:-6px 0 16px;line-height:1.8}
+  .legend-note{font-size:11.5px;color:#4A5262;margin:0 0 18px;line-height:1.75;
+    padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
 
   .script{max-height:56svh;overflow-y:auto;scrollbar-width:none;padding-right:4px;transition:max-height .5s ease}
   /* 分析完之后它变成可回看、可点选的清单 */
@@ -283,9 +288,8 @@
     <p class="eyebrow">AI 职场表达训练</p>
     <h1 class="title" style="margin-top:22px">看见自己的表达。<br>再把它练得<em>有影响力</em>。</h1>
     <p class="sub">
-      面试自我介绍，或者向老板争取一件事。<br>
-      说一遍给 AI 听，它告诉你对方记住了什么、漏掉了什么，<br>
-      再给你一版能直接说出口的。
+      面试自我介绍，或者向老板争取一件事。说一遍给 AI 听，
+      它告诉你对方记住了什么、漏掉了什么，再给你一版能直接说出口的。
     </p>
     <div class="actions">
       <button class="btn" id="go">开始排练</button>
@@ -293,7 +297,7 @@
     </div>
     <p class="foot-note">
       判据：金字塔原理 · 麦肯锡电梯法则<br>
-      不是我们觉得你说得好不好，是你的结论出现在第几秒
+      不是我们觉得你说得好不好，<wbr>是你的结论出现在第几秒
     </p>
   </div>
 </section>
@@ -349,7 +353,7 @@
       <span class="lg lg-fill">口头禅</span>
       <span class="lg lg-void">正确的废话</span>
     </div>
-    <p class="legend-note">同一个口头禅说到第 3 次，会被划出来并标上次数 —— 那时它不再是口头禅，是在抢注意力。</p>
+    <p class="legend-note">同一个口头禅说到第 3 次会被划出来 —— 那时它不再是口头禅，是在抢注意力。</p>
     <div class="script" id="script"></div>
     <p class="script-tip">点任意一句可以把它关掉，下面的数字和改好的版本会跟着变。</p>
   </div>
@@ -785,8 +789,8 @@ function paint(ts){
       if(b.a<=0) return;
       const x=b.u*W*1.5-W*.25, y=H*.42+b.off*H, r=b.rr*Math.max(W,H)*1.6;
       const g=ctx.createRadialGradient(x,y,0,x,y,r);
-      g.addColorStop(0,`rgba(150,168,214,${b.a*mwA})`);
-      g.addColorStop(.5,`rgba(112,132,190,${b.a*mwA*.3})`);
+      g.addColorStop(0,`rgba(150,168,214,${b.a*mwA*.72})`);
+      g.addColorStop(.5,`rgba(112,132,190,${b.a*mwA*.22})`);
       g.addColorStop(1,'rgba(85,105,175,0)');
       ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,6.3); ctx.fill();
     });
@@ -936,7 +940,8 @@ const $=id=>document.getElementById(id);
 const screens=['landing','picker','stage','result'];
 function show(id){
   screens.forEach(s=>$(s).classList.toggle('on', s===id));
-  $('scrim').classList.toggle('on', id==='result'||id==='picker');
+  $('scrim').classList.toggle('on', id==='result'||id==='picker'||id==='stage');
+  $('scrim').classList.toggle('soft', id==='stage');
   showLabels = (id==='stage');
   window.scrollTo(0,0);
 }
@@ -1121,7 +1126,7 @@ function run(){
   const { list, total } = SESSION;
   stars=[]; trunk=0; treeActive=false; pollTarget=0; pollNow=0;
   $('result').classList.remove('on');
-  $('scrim').classList.remove('on');
+  $('scrim').classList.add('on'); $('scrim').classList.add('soft');
   showLabels=true; window.scrollTo({top:0,behavior:'smooth'});
   const t0=performance.now(), SPEED=2.6;
   let shown=-1;
@@ -1172,6 +1177,7 @@ function finish(){
   // 不切页：结果原地接在播放页下面，天空留在原处
   $('result').classList.add('on');
   $('scrim').classList.add('on');
+  $('scrim').classList.remove('soft');
   showLabels=false;
   requestAnimationFrame(()=>$('result').scrollIntoView({behavior:'smooth',block:'start'}));
 }
