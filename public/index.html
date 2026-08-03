@@ -87,8 +87,7 @@
   .tab.on{color:var(--star);border-color:rgba(255,233,176,.5);background:rgba(255,233,176,.08)}
   .prompt{font-size:clamp(24px,5.4vw,35px);margin-top:24px;font-weight:600;line-height:1.45}
   /* 用户反馈：不知道该输入什么、也不知道会得到什么 */
-  .why-two{font-size:12.5px;color:var(--dim);line-height:1.9;margin-top:14px}
-  .why-two b{color:var(--muted);font-weight:normal}
+  .tabs .more{align-self:center;font-size:12.5px;color:var(--dim);margin-left:4px}
   .guide-get{padding-left:14px;border-left:2px solid rgba(255,233,176,.3);color:#9AA4B8!important;margin-top:12px!important}
   textarea{
     width:100%;min-height:132px;margin-top:16px;background:rgba(0,0,0,.4);color:var(--ink);
@@ -295,8 +294,6 @@
     <p class="eyebrow">选一个场景</p>
     <div class="tabs" id="tabs"></div>
     <h2 class="prompt" id="prompt"></h2>
-    <p class="why-two">只做这两个，是因为它们都<b>可以提前排练</b>、都有输赢、而且考的东西不一样：
-    自我介绍考「结论多晚出现」，向上争取考「你到底有没有开口要」。更多场景在路上。</p>
     <div class="panel" style="margin-top:24px">
       <h4>粘一段你真要说的话</h4>
       <p class="hint" id="guideWhat"></p>
@@ -932,7 +929,8 @@ const PLACEHOLDER = {
   claim:'比如：老板，那个，占用您五分钟可以吗，是这样，我来公司差不多两年半了……'
 };
 $('tabs').innerHTML = CORPUS.map(c=>
-  `<button class="tab" data-id="${c.id}">${c.name}</button>`).join('');
+  `<button class="tab" data-id="${c.id}">${c.name}</button>`).join('')
+  + `<span class="more">更多场景在路上</span>`;
 function setScene(id){
   curScene = CORPUS.find(c=>c.id===id);
   [...$('tabs').children].forEach(b=>b.classList.toggle('on', b.dataset.id===id));
