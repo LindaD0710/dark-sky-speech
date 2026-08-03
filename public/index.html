@@ -373,11 +373,9 @@
     <div style="display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap">
       <button class="btn" id="retry">再练一次</button>
       <button class="btn ghost" id="again">换个场景</button>
-      <button class="btn ghost" id="shot">生成分享图</button>
     </div>
 
     <p class="cite">
-      Bortle Scale · John E. Bortle, Sky &amp; Telescope, 2001<br>
       金字塔原理 · Barbara Minto｜电梯法则 · McKinsey &amp; Company
     </p>
 
@@ -445,6 +443,11 @@ const CORPUS = [
                      {text:'（没有说成交额或转化率）', said:null} ] }
       ]
     },
+    listener:[
+      {at:13, text:'说了一分多钟了，我还不知道你能替我们解决什么问题。'},
+      {at:20, text:'这句才是我想听的 —— 可惜它排在第 90 秒。'},
+      {at:24, text:'「我们可以聊」？决定权在我这边，这话说反了。'}
+    ],
     better:'我做的事情其实一直是一件：把内容变成生意。\n\n具体是两块。一块是把量做起来——在上一家公司，我把品牌号从 0 做到了 40 万粉，中间也带过一个内容运营的小团队。另一块是让这些量真的能变成收入，那一年从内容进来的自然咨询，占了全年营收的三成。\n\n我之前在报社做过两年深度报道，所以对内容本身怎么写、怎么让人读下去，还算有点底子。\n\n如果你们现在缺的正是把内容跑通到成交这一段，我们可以再聊得细一点。'
   },
   { id:'claim', name:'向上争取',
@@ -478,6 +481,11 @@ const CORPUS = [
                      {text:'新客成本从 42 压到 27', said:12} ] }
       ]
     },
+    listener:[
+      {at:8,  text:'说了这么多，我还在等 —— 你到底想让我做什么？'},
+      {at:13, text:'终于说了。但「聊聊」是聊什么？我要答应你什么？'},
+      {at:14, text:'你说完这句，我可以顺着说「那就改天吧」—— 这个台阶是你自己递的。'}
+    ],
     better:'老板，想跟您聊聊我的薪资，这件事我考虑挺久了。\n\n主要是两件事。一是我现在承担的范围已经超出了原来的岗位——团队走了两个人之后，投放和内容两块都是我一个人在顶，顶了小半年。二是这条线今年的产出：占了全公司营收的四成，新客成本也从 42 块压到了 27 块。\n\n我知道今年整体不容易，所以也不是想让您现在就给答复。您看能不能定个时间，我们把这件事正式过一下？'
   }
 ];
@@ -963,18 +971,9 @@ function showLoading(on){
   }
 }
 
-/** 跑一个预置场景：先问引擎，引擎不通就用打包好的那份 */
-async function runScene(scene){
-  showLoading(true);
-  try{
-    const res = await analyze(scene.id, scene.sents.map(s=>s[0]));
-    start(scene.sents.map((s,i)=>[s[0], res.roles[i] || s[1]]),
-          { name:scene.name, pyramid:res.pyramid, better:res.better,
-            listener:res.listener, applicable:res.applicable, notApplicable:res.notApplicable });
-  }catch(e){
-    start(scene.sents, scene);          // 预置语料自带完整结构，降级也完整
-  }finally{ showLoading(false); }
-}
+/** 看别人的样本：直接用打包好的那份，秒开。
+    等待只该发生在分析「你自己的话」的时候 —— 看案例不该让人干等。 */
+function runScene(scene){ start(scene.sents, scene); }
 const toPicker = ()=>{ cancelAnimationFrame(raf); pollTarget=0; stars=[]; trunk=0; treeActive=false;
                        $('result').classList.remove('on'); show('picker'); };
 $('again').onclick  = toPicker;
@@ -1211,47 +1210,6 @@ $('script').addEventListener('click',e=>{
   refresh();
 });
 
-
-
-/* -------- 分享图 1080×1350 -------- */
-$('shot').onclick=()=>{
-  const w=1080,h=1350, c=document.createElement('canvas');
-  c.width=w; c.height=h; const x=c.getContext('2d');
-  const { list, total, spec } = SESSION;
-  const fs = score(list).firstSig;
-
-  x.fillStyle='#04060d'; x.fillRect(0,0,w,h);
-  x.drawImage(cv, 0,0,cv.width,cv.height, 0,0,w,h*0.5);
-  const fade=x.createLinearGradient(0,h*0.24,0,h*0.5);
-  fade.addColorStop(0,'rgba(4,6,13,0)'); fade.addColorStop(1,'#04060d');
-  x.fillStyle=fade; x.fillRect(0,h*0.24,w,h*0.26);
-
-  x.textAlign='center';
-  x.fillStyle='#5A6478'; x.font='500 26px ui-sans-serif,"PingFang SC",sans-serif';
-  x.fillText((spec&&spec.name)||'一段话', w/2, h*0.40);
-
-  x.fillStyle='#EAEEF7'; x.font='600 52px ui-sans-serif,"PingFang SC",sans-serif';
-  x.fillText(`我说了 ${total.toFixed(0)} 秒。`, w/2, h*0.50);
-  x.fillText('第一句有信息量的话', w/2, h*0.565);
-
-  const grd=x.createLinearGradient(0,h*0.60,0,h*0.72);
-  grd.addColorStop(0,'#FFD79A'); grd.addColorStop(1,'#FF8A46');
-  x.fillStyle=grd; x.font='600 170px ui-sans-serif,"PingFang SC",sans-serif';
-  x.fillText(fs?`第 ${fs.t0.toFixed(0)} 秒`:'从未出现', w/2, h*0.71);
-
-  x.fillStyle='#828EA6'; x.font='400 30px ui-sans-serif,"PingFang SC",sans-serif';
-  x.fillText('金字塔原理：结论先行', w/2, h*0.79);
-  x.fillText('电梯法则：结论应当在 30 秒内出现', w/2, h*0.835);
-
-  x.strokeStyle='rgba(255,255,255,.1)'; x.beginPath();
-  x.moveTo(w*0.2,h*0.885); x.lineTo(w*0.8,h*0.885); x.stroke();
-
-  x.fillStyle='#4A5568'; x.font='400 26px ui-sans-serif,"PingFang SC",sans-serif';
-  x.fillText('暗夜表达 · 看看你的话，别人听进去了多少', w/2, h*0.935);
-
-  const a=document.createElement('a');
-  a.download=`暗夜表达_${fs?fs.t0.toFixed(0)+'秒':'无结论'}.png`;
-  a.href=c.toDataURL('image/png'); a.click();
-};</script>
+</script>
 </body>
 </html>
