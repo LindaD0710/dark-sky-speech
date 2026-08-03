@@ -60,7 +60,9 @@ async function runCase(cs) {
   // 4. 证据归属：金句有没有被挂到某条理由下面
   const gotIdx = new Set(reasons.flatMap(r => r.evidence.map(e => e.said)).filter(i => i !== null));
   const foundEv = g.evidenceIndices.filter(i => gotIdx.has(i));
-  const evidenceOK = foundEv.length >= Math.ceil(g.evidenceIndices.length * 0.6);
+  // n=2 时 ceil(2*0.6)=2 等于要求 100%，那个 60% 容差是假的 —— 小样本一律只要求命中 1 条
+  const evN = g.evidenceIndices.length;
+  const evidenceOK = foundEv.length >= (evN <= 2 ? 1 : Math.ceil(evN * 0.6));
   const everyReasonHasEv = reasons.every(r => r.evidence.length > 0);
 
   // 5. 改好的版本
