@@ -6,12 +6,13 @@
 <title>暗夜表达 · 原型 v1</title>
 <style>
   :root{
-    --ink:#EAEEF7;
-    --muted:#828EA6;
-    --dim:#5A6478;
+    --ink:#F2F5FB;
+    --muted:#98A4B8;
+    --dim:#7C8799;
+    --surface:#0A0E16;
     --star:#FFE9B0;
     --line:rgba(255,255,255,.09);
-    --panel:rgba(6,9,16,.88);
+    --panel:#0A0E16;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -132,8 +133,17 @@
 
   /* ---------- 逐句陈列 ---------- */
   .scene{font-size:13px;letter-spacing:.14em;color:var(--muted)}
-  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
-    gap:11px 18px;margin-bottom:14px;font-size:12px;color:var(--dim)}
+  /* 图例是查阅型信息：看一次就记住了，不该常驻占一屏 */
+  .legend-toggle{background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;font-size:12.5px;padding:7px 14px;border-radius:999px;
+    cursor:pointer;transition:.24s;margin-bottom:14px}
+  .legend-toggle:hover{color:var(--ink);border-color:rgba(255,255,255,.28)}
+  .legend-toggle span{color:var(--dim);margin-left:4px}
+  .legend{display:none;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    gap:11px 18px;margin-bottom:16px;font-size:12.5px;color:var(--muted);
+    background:var(--surface);border:1px solid rgba(255,255,255,.07);
+    border-radius:16px;padding:18px 20px}
+  .legend.on{display:grid}
   .lg{display:inline-flex;align-items:center;gap:6px}
   .lg::before{content:"";width:8px;height:8px;border-radius:2px}
   .lg-core::before{background:#FFE9B0}
@@ -143,12 +153,14 @@
   .lg-void::before{background:#C79BFF}
   .lg-setup::before{background:#4E8C78}
   .lg-back::before{background:#6E7688}
-  .legend-note{font-size:11.5px;color:#4A5262;margin:0 0 18px;line-height:1.75;
-    padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+  .legend-note{grid-column:1/-1;font-size:12px;color:var(--dim);margin:2px 0 0;line-height:1.75;
+    padding-top:13px;border-top:1px solid rgba(255,255,255,.07)}
 
-  .script{max-height:56svh;overflow-y:auto;scrollbar-width:none;padding-right:4px;transition:max-height .5s ease}
+  .script{max-height:56svh;overflow-y:auto;scrollbar-width:none;transition:max-height .5s ease;
+    background:var(--surface);border:1px solid rgba(255,255,255,.07);
+    border-radius:20px;padding:6px 22px}
   /* 分析完之后它变成可回看、可点选的清单 */
-  .script.done{max-height:none;overflow:visible}
+  .script.done{max-height:none;overflow:visible;padding:14px 22px 20px}
   .script.done .ln{cursor:pointer;border-radius:10px;padding-left:8px;margin-left:-8px}
   .script.done .ln:hover{background:rgba(255,255,255,.04)}
   .ln.off .tx{text-decoration:line-through;opacity:.3}
@@ -161,23 +173,23 @@
   .script-tip{font-size:12px;color:var(--dim);margin-top:16px;display:none}
   .script.done ~ .script-tip{display:block}
   .script::-webkit-scrollbar{display:none}
-  .ln{display:flex;gap:14px;align-items:flex-start;padding:9px 0;
+  .ln{display:flex;gap:14px;align-items:flex-start;padding:12px 0;
     animation:lnIn .5s cubic-bezier(.2,.9,.3,1) both}
   @keyframes lnIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
   .ln .tag{flex:none;width:5.4em;text-align:right;font-size:11px;letter-spacing:.08em;
     margin-top:7px;color:var(--dim);white-space:nowrap}
-  .ln .tx{font-size:clamp(16px,2.3vw,21px);line-height:1.75;color:#8E97AB;
+  .ln .tx{font-size:clamp(16.5px,2.35vw,21px);line-height:1.9;color:#A7B1C4;
     flex:1;min-width:0;white-space:normal;word-break:break-word}
   /* 句子整体的分量：核心句亮，噪音句暗 */
-  .ln.core .tx{color:#F4F7FD}
+  .ln.core .tx{color:#F5F8FE}
   .ln.core .tag{color:#FFE9B0}
-  .ln.fact .tx{color:#F4F7FD}
+  .ln.fact .tx{color:#F5F8FE}
   .ln.fact .tag{color:#7FE0C0}
   .ln.setup .tag{color:#4E8C78}
   .ln.setup .tx{color:#C9D6D0}
   .ln.back .tag{color:#6E7688}
   .ln.self .tag{color:#FFA36B}
-  .ln.fill .tag,.ln.fill .tx{color:#5E6577}
+  .ln.fill .tag,.ln.fill .tx{color:#78839A}
   .ln.void .tag{color:#C79BFF}
   /* 词级标注 */
   .m-fact{color:#7FE0C0;font-weight:600}
@@ -257,7 +269,7 @@
   @media(max-width:600px){ .cols{flex-direction:column;gap:26px} .cols::before{display:none} }
 
   /* 改好的版本 —— 结果页唯一可以带走的东西 */
-  .rw-text{margin-top:18px;font-size:clamp(16px,2.2vw,19px);line-height:2.05;color:#F4F7FD}
+  .rw-text{margin-top:18px;font-size:clamp(16.5px,2.25vw,19.5px);line-height:2.15;color:#F5F8FE}
   .rw-text p+p{margin-top:16px}
   .rw-text .glue{color:#79839A;text-decoration:underline;text-decoration-color:rgba(255,255,255,.2);
     text-underline-offset:4px}
@@ -292,7 +304,7 @@
 <section id="landing" class="screen on">
   <div class="wrap">
     <p class="eyebrow">AI 职场表达训练</p>
-    <h1 class="title" style="margin-top:22px">看见自己的表达。<br>再让对方<em>听进去</em>。</h1>
+    <h1 class="title" style="margin-top:22px">说出口，只是一半。<br><em>被听懂</em>，才算说完。</h1>
     <p class="sub">
       面试自我介绍，或者向老板争取一件事。说一遍给 AI 听，
       它告诉你对方记住了什么、漏掉了什么，再给你一版能直接说出口的。
@@ -350,7 +362,8 @@
   </div>
 
   <div class="wrap">
-    <div class="legend">
+    <button class="legend-toggle" id="legendBtn">颜色说明 <span>展开</span></button>
+    <div class="legend" id="legendBox">
       <span class="lg lg-core">结论与诉求</span>
       <span class="lg lg-fact">证据 · 事实与数据</span>
       <span class="lg lg-setup">情境 · 证据的前提</span>
@@ -358,8 +371,8 @@
       <span class="lg lg-back">铺垫</span>
       <span class="lg lg-fill">口头禅</span>
       <span class="lg lg-void">正确的废话</span>
+      <p class="legend-note">同一个口头禅说到第 3 次会被划出来 —— 那时它不再是口头禅，是在抢注意力。</p>
     </div>
-    <p class="legend-note">同一个口头禅说到第 3 次会被划出来 —— 那时它不再是口头禅，是在抢注意力。</p>
     <div class="script" id="script"></div>
     <p class="script-tip">点任意一句可以把它关掉，下面的数字和改好的版本会跟着变。</p>
   </div>
@@ -1089,6 +1102,19 @@ function startRec(){
 
 $('mic') && ($('mic').onclick = ()=>{ rec ? recStop() : startRec(); });
 
+/* 图例默认收起；第一次进演练页自动展开一次，之后记住用户的选择 */
+let legendSeen = false;
+$('legendBtn').onclick = ()=>{
+  const on = $('legendBox').classList.toggle('on');
+  $('legendBtn').querySelector('span').textContent = on ? '收起' : '展开';
+};
+function legendFirstTime(){
+  if(legendSeen) return;
+  legendSeen = true;
+  $('legendBox').classList.add('on');
+  $('legendBtn').querySelector('span').textContent = '收起';
+}
+
 $('goOwn').onclick  = async ()=>{
   const raw=$('own').value.trim();
   if(raw.length<20){ $('own').focus(); $('own').placeholder='至少写 20 个字，太短看不出结构。'; return; }
@@ -1142,6 +1168,7 @@ function run(){
   showLabels=true; window.scrollTo({top:0,behavior:'smooth'});
   const t0=performance.now(), SPEED=2.6;
   let shown=-1;
+  legendFirstTime();
   $('script').classList.remove('done');
   $('script').innerHTML=''; fillTally={};
   $('sceneName').textContent = (curScene && curScene.name) || '你说的话';
