@@ -182,14 +182,16 @@
 
 
   /* 对方视角：把判决换成排练 */
-  .lsn{display:flex;gap:14px;align-items:flex-start;padding:15px 0;
-    border-bottom:1px solid rgba(255,255,255,.055)}
+  .lsn{padding:18px 0;border-bottom:1px solid rgba(255,255,255,.055)}
   .lsn:last-child{border-bottom:0}
-  .lsn .when{flex:none;font-size:11px;color:var(--dim);margin-top:9px;
-    width:4.6em;text-align:right;white-space:nowrap}
-  .lsn .say{font-size:16px;line-height:1.85;color:#DCE3F0;position:relative;padding-left:20px}
-  .lsn .say::before{content:"「";position:absolute;left:0;top:-1px;color:#4E5D78;font-size:19px}
-  .lsn .say::after{content:"」";color:#4E5D78}
+  .lsn .when{font-size:11px;color:var(--dim);letter-spacing:.06em;margin-bottom:8px}
+  /* 先把原话摆出来，再给反应 —— 不能让人回去翻自己说了什么 */
+  .lsn .mine{font-size:15px;line-height:1.75;color:#79839A;
+    padding-left:15px;border-left:2px solid rgba(255,255,255,.12)}
+  .lsn .his{display:flex;gap:10px;margin-top:12px;align-items:flex-start}
+  .lsn .his .arrow{flex:none;color:#4E5D78;font-size:15px;margin-top:4px}
+  .lsn .his .say{font-size:16.5px;line-height:1.85;color:#DCE3F0}
+  .lsn .his .say b{color:#FFD79A;font-weight:normal}
 
   /* ---------- 金字塔（带支撑关系，不是三层货架） ---------- */
   .pyr2{--ln:rgba(255,255,255,.16);margin-top:22px}
@@ -1142,9 +1144,13 @@ function renderListener(){
   const list = SESSION.list;
   $('listen').innerHTML = ls.map(l=>{
     const s = (l.at!=null && list[l.at]) ? list[l.at] : null;
-    const when = s ? `第 ${s.t0.toFixed(0)} 秒` : '';
-    return `<div class="lsn"><span class="when">${when}</span>`
-         + `<span class="say">${esc(l.text)}</span></div>`;
+    const when = s ? `第 ${s.t0.toFixed(0)} 秒 · 你说` : '这段话听完';
+    return `<div class="lsn">`
+         + `<div class="when">${when}</div>`
+         + (s ? `<div class="mine">${esc(s.text)}</div>` : '')
+         + `<div class="his"><span class="arrow">↳</span>`
+         + `<span class="say">他心里：「${esc(l.text)}」</span></div>`
+         + `</div>`;
   }).join('');
 }
 
