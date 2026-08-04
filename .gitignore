@@ -3,3 +3,6 @@ node_modules/
 .env.local
 .vercel
 .DS_Store
+
+# 琳达的私人照片，只用于小红书配图，不进公开仓库
+琳达拍的星空.JPG
