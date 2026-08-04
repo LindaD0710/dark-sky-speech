@@ -2,7 +2,7 @@
 
 看看你说的话，别人听进去了多少。依据金字塔原理与麦肯锡电梯法则。
 
-**在线体验：** https://dark-sky-speech.vercel.app
+**在线体验：** https://speech.chuxiuxiaoji.com
 **用户手册：** [用户手册.md](用户手册.md)
 
 ## 目录
