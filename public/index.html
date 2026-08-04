@@ -466,7 +466,7 @@ const ROLE_CN = {
 };
 
 const CORPUS = [
-  { id:'intro', name:'面试自我介绍', entry:true,
+  { id:'intro', name:'面试自我介绍', entry:true, who:'面试官',
     prompt:'假设你正坐在面试间里。介绍你自己。',
     desc:'说了快两分钟。结论压在第 80 秒——电梯法则给的窗口是 30 秒。',
     sents:[
@@ -515,7 +515,7 @@ const CORPUS = [
     ],
     better:'我做的事情其实一直是一件：把内容变成生意。\n\n具体是两块。一块是把量做起来——在上一家公司，我把品牌号从 0 做到了 40 万粉，中间也带过一个内容运营的小团队。另一块是让这些量真的能变成收入，那一年从内容进来的自然咨询，占了全年营收的三成。\n\n我之前在报社做过两年深度报道，所以对内容本身怎么写、怎么让人读下去，还算有点底子。\n\n如果你们现在缺的正是把内容跑通到成交这一段，我们可以再聊得细一点。'
   },
-  { id:'claim', name:'跟老板提加薪',
+  { id:'claim', name:'跟老板提加薪', who:'老板',
     prompt:'你要跟老板提加薪。加人、要预算，也是同一套说法。',
     desc:'铺垫了 44 秒才说出第一句有信息量的话，最后一句又自己把诉求收了回去。',
     sents:[
@@ -1314,7 +1314,8 @@ function renderListener(){
     if(!ln) return;
     const d=document.createElement('div');
     d.className='react';
-    d.innerHTML=`<span>他心里：</span>${esc(l.text)}`;
+    const who = (curScene && curScene.who) || '他';
+    d.innerHTML=`<span>${esc(who)}心里：</span>${esc(l.text)}`;
     ln.querySelector('.tx').appendChild(d);
   });
 }
