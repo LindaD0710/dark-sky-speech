@@ -1286,7 +1286,7 @@ function renderPyramid(){
   // 有些话本来就不该套金字塔（复盘、探索性思考、状态同步）——不能指责他"没有结论"
   if(SESSION.spec && SESSION.spec.applicable === false){
     host.innerHTML = `<div class="bx" style="text-align:left;border-color:rgba(127,224,192,.3)">
-      这段话不适合用金字塔来量。
+      这段话不适合套金字塔。
       <span class="why">${esc(SESSION.spec.notApplicable||'')}　金字塔适用于有主张、需要对方做判断的表达；这段不是，所以这里不给结构诊断。</span></div>`;
     return;
   }

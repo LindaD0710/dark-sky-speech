@@ -138,6 +138,6 @@ export function normalize(raw, sentences) {
 
   return {
     roles, pyramid, better, listener, applicable,
-    notApplicable: applicable ? null : (typeof raw?.notApplicable === 'string' ? raw.notApplicable : '这段话不适合用金字塔来量')
+    notApplicable: applicable ? null : (typeof raw?.notApplicable === 'string' ? raw.notApplicable : '这段话不适合套金字塔')
   };
 }
