@@ -88,8 +88,18 @@
     max-width:26em;margin-left:auto;margin-right:auto;text-wrap:pretty}
 
   /* ---------- picker ---------- */
-  .tabs{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-  .tab{padding:9px 20px;border-radius:999px;border:1px solid var(--line);background:transparent;
+  .tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));
+    gap:12px;margin-top:16px}
+  .tab{display:block;text-align:left;padding:18px 20px;border-radius:16px;
+    border:1px solid var(--line);background:rgba(255,255,255,.02);cursor:pointer;
+    font-family:inherit;transition:.22s}
+  .tab b{display:block;font-size:18px;color:var(--ink);font-weight:600;line-height:1.4}
+  .tab i{display:block;font-style:normal;font-size:14px;color:var(--dim);
+    line-height:1.6;margin-top:7px}
+  .tab.on{border-color:rgba(255,233,176,.6);background:rgba(255,233,176,.07)}
+  .tab.on b{color:#FFE9B0}
+  .tab:hover{border-color:rgba(255,255,255,.26)}
+  .tab-legacy{padding:9px 20px;border-radius:999px;border:1px solid var(--line);background:transparent;
     color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;transition:.24s}
   .tab:hover{color:var(--ink);border-color:rgba(255,255,255,.28)}
   .tab.on{color:var(--star);border-color:rgba(255,233,176,.5);background:rgba(255,233,176,.08)}
@@ -297,6 +307,15 @@
     font-size:13px;color:var(--muted);line-height:1.9}
   .rw-meta b{color:var(--star);font-weight:600;font-variant-numeric:tabular-nums}
 
+  .gaps{display:flex;flex-direction:column;gap:14px}
+  .gap{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px 18px;
+    background:rgba(255,255,255,.025)}
+  .gap .gt{font-size:16.5px;color:#FFE9B0;line-height:1.5;font-weight:600}
+  .gap .gq{margin-top:9px;padding-left:12px;border-left:2px solid rgba(255,255,255,.16);
+    font-size:14.5px;color:var(--muted);line-height:1.7}
+  .gap .gw{margin-top:10px;font-size:15px;color:var(--ink);line-height:1.75}
+  .gap .gf{margin-top:10px;font-size:15px;color:#7FE0C0;line-height:1.75}
+  .gap .gf::before{content:"→ ";opacity:.7}
   .gaps li{list-style:none;font-size:15.5px;color:var(--muted);padding:9px 0 9px 18px;position:relative;line-height:1.8}
   .gaps li::before{content:"";position:absolute;left:0;top:17px;width:5px;height:5px;border-radius:50%;background:#FF8A46}
 
@@ -330,7 +349,7 @@
     </p>
     <div class="actions">
       <button class="btn" id="go">开始排练</button>
-      <button class="btn ghost" id="goDemo">先看一个真实的样本</button>
+      <button class="btn ghost" id="goDemo">先看一个真实的例子</button>
     </div>
     <p class="foot-note">
       判据：金字塔原理 · 麦肯锡电梯法则<br>
@@ -368,7 +387,7 @@
       <textarea id="own" placeholder=""></textarea>
       <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn sm" id="goOwn">开始分析</button>
-        <button class="btn ghost sm" id="goSample">没想好？看一个真实的翻车样本</button>
+        <button class="btn ghost sm" id="goSample">没想好？先看一个真实的例子</button>
       </div>
     </div>
   </div>
@@ -424,15 +443,11 @@
 
     <div class="stats" id="stats"></div>
 
-    <div class="panel">
-      <h4>金字塔 · 你说的话该怎么站</h4>
-      <p class="hint">同样这些句子，按金字塔原理归位。虚线格子是你没说的那部分。</p>
-      <div id="pyr2"></div>
-      <div class="pyr-key">
-        <span class="k-said">你真的说了</span>
-        <span class="k-mis">说了，但没挂在理由下面</span>
-        <span class="k-no">整个没说</span>
-      </div>
+    <!-- 第 2 层 · 关键问题（内测反馈：先给问题和改法，再给完整对照） -->
+    <div class="panel" id="gapPanel">
+      <h4>最该先改的</h4>
+      <p class="hint">只看结构，不评文采。每条都给了这一步怎么改。</p>
+      <div class="gaps" id="gaps"></div>
     </div>
 
     <div class="panel">
@@ -442,12 +457,16 @@
       <p class="rw-meta" id="rwMeta"></p>
     </div>
 
-
-
-    <div class="panel" id="gapPanel">
-      <h4>还缺什么</h4>
-      <p class="hint">按金字塔原理逐条对照，只看结构，不评文采。</p>
-      <ul class="gaps" id="gaps"></ul>
+    <!-- 第 3 层 · 完整对照 -->
+    <div class="panel">
+      <h4>金字塔 · 你说的话该怎么站</h4>
+      <p class="hint">同样这些句子，按金字塔原理归位。虚线格子是你没说的那部分。</p>
+      <div id="pyr2"></div>
+      <div class="pyr-key">
+        <span class="k-said">你真的说了</span>
+        <span class="k-mis">说了，但没挂在理由下面</span>
+        <span class="k-no">整个没说</span>
+      </div>
     </div>
 
     <div style="display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap">
@@ -482,6 +501,7 @@ const ROLE_CN = {
 
 const CORPUS = [
   { id:'intro', name:'面试自我介绍', entry:true, who:'面试官',
+    when:'下周要面试，想先把开场那两三分钟练顺',
     prompt:'假设你正坐在面试间里。介绍你自己。',
     desc:'说了快两分钟。结论压在第 80 秒——电梯法则给的窗口是 30 秒。',
     sents:[
@@ -531,6 +551,7 @@ const CORPUS = [
     better:'我做的事情其实一直是一件：把内容变成生意。\n\n具体是两块。一块是把量做起来——在上一家公司，我把品牌号从 0 做到了 40 万粉，中间也带过一个内容运营的小团队。另一块是让这些量真的能变成收入，那一年从内容进来的自然咨询，占了全年营收的三成。\n\n我之前在报社做过两年深度报道，所以对内容本身怎么写、怎么让人读下去，还算有点底子。\n\n如果你们现在缺的正是把内容跑通到成交这一段，我们可以再聊得细一点。'
   },
   { id:'claim', name:'跟老板提加薪', who:'老板',
+    when:'准备开口要加薪、加人或要预算，怕说着说着把话收回去',
     prompt:'你要跟老板提加薪。加人、要预算，也是同一套说法。',
     desc:'铺垫了 44 秒才说出第一句有信息量的话，最后一句又自己把诉求收了回去。',
     sents:[
@@ -721,31 +742,58 @@ function rewriteOf(list){
   return out;
 }
 
+/* 每条问题给三样东西：叫什么、为什么影响沟通、这一步怎么改。
+   —— 内测反馈：用户看得懂标注，但不知道该干什么。 */
 function findGaps(list){
   const on=list.filter(s=>!s.off), g=[];
   const sig=on.filter(s=>s.sig);
   const first=sig[0];
+  const quote = t => t.length>22 ? t.slice(0,22)+'…' : t;
+
   if(!sig.some(s=>s.role==='CLAIM'||s.role==='EVIDENCE'))
-    g.push('全程没有出现一个可以被反对的具体断言 — 对方无从判断你说的对不对。');
+    g.push({ t:'没有可被反对的断言',
+             why:'全程没出现一句能让对方判断对错的话，他没有支点，只能礼貌地听完。',
+             fix:'挑一件你做成的事，用一句能被验证的话说出来。' });
   else if(first && first.t0 > ELEVATOR)
-    g.push(`第一个有信息量的句子出现在第 ${first.t0.toFixed(1)} 秒。电梯法则要求结论在 30 秒内出现。`);
+    g.push({ t:`重点出现在第 ${first.t0.toFixed(0)} 秒`,
+             q:quote(first.text),
+             why:`电梯法则给的窗口是 30 秒。在这之前，对方一直在等一句能接住的话。`,
+             fix:'把这一句挪到开头。内容不用改，只改位置。' });
+
   const askIdx = on.findIndex(s=>s.role==='ASK');
   if(askIdx < 0)
-    g.push('从头到尾没有提出任何诉求 — 对方听完不知道要做什么。');
+    g.push({ t:'没有提出诉求',
+             why:'对方听完不知道你要他做什么，于是什么都不会做。',
+             fix:'补一句具体的：你希望他做什么、什么时候之前。' });
   else {
-    // 「向上争取」的签名失败：话说出口了，又自己收回去
     const RETRACT=/(改天|下次再说|不方便|算了|也行|随便您|您考虑|不着急|没关系|当我没说)/;
-    if(on.slice(askIdx+1).some(s=>RETRACT.test(s.text)))
-      g.push('你提出了诉求，然后在下一句里把它收了回去 — 对方会顺着台阶下。');
+    const back = on.slice(askIdx+1).find(s=>RETRACT.test(s.text));
+    if(back)
+      g.push({ t:'诉求提了又收回去',
+               q:quote(back.text),
+               why:'你先开了口，又主动给了对方一个台阶——他会顺着下。',
+               fix:'把这句删掉。提完诉求就停住，让沉默替你说话。' });
   }
+
   if(!on.some(s=>s.role==='EVIDENCE'))
-    g.push('没有出现任何数字或具体事实 — 断言悬空，只能靠信任接受。');
+    g.push({ t:'没有任何数字或事实',
+             why:'断言悬空，对方只能靠信任接受，而信任正是你还没建立的东西。',
+             fix:'给一个数：多少、多久、从多少到多少。' });
+
   const bg=on.filter(s=>s.role==='BACKGROUND'||s.role==='PROCESS').reduce((a,s)=>a+s.chars,0);
   const tc=on.reduce((a,s)=>a+s.chars,0)||1;
   if(bg/tc > .35)
-    g.push(`铺垫与表功占了 ${Math.round(bg/tc*100)}% 的篇幅 — 金字塔原理建议控制在 35% 以内。`);
-  const fl=on.filter(s=>s.role==='FILLER').length;
-  if(fl>=3) g.push(`${fl} 句纯口头禅。它们不增加信息，只占用对方的注意力。`);
+    g.push({ t:`铺垫和表功占了 ${Math.round(bg/tc*100)}%`,
+             why:'这部分不推进任何判断，只是在消耗对方的耐心。',
+             fix:'把上面标成灰色和橙色的句子删掉一半，先删最长的那几句。' });
+
+  const fl=on.filter(s=>s.role==='FILLER');
+  if(fl.length>=3)
+    g.push({ t:`${fl.length} 句纯口头禅`,
+             q:quote(fl[0].text),
+             why:'它们不增加信息，只占用对方的注意力。说到第三次就开始盖过内容。',
+             fix:'录下来自己听一遍，你会立刻听出来。' });
+
   return g;
 }
 
@@ -1008,7 +1056,7 @@ const PLACEHOLDER = {
   claim:'比如：老板，那个，占用您五分钟可以吗，是这样，我来公司差不多两年半了……'
 };
 $('tabs').innerHTML = CORPUS.map(c=>
-  `<button class="tab" data-id="${c.id}">${c.name}</button>`).join('')
+  `<button class="tab" data-id="${c.id}"><b>${c.name}</b><i>${c.when||''}</i></button>`).join('')
   + `<span class="more">更多场景在路上</span>`;
 function setScene(id){
   curScene = CORPUS.find(c=>c.id===id);
@@ -1092,6 +1140,7 @@ function recStop(){
   }else{
     $('recTip').textContent='没听到，再试一次';
   }
+  keepAwake(false);
 }
 
 function startRec(){
@@ -1116,19 +1165,37 @@ function startRec(){
   };
   rec.onerror=ev=>{
     recStop();
-    $('recTip').textContent = ev.error==='not-allowed'
-      ? '麦克风没授权 —— 直接把话写在下面也一样'
-      : '刚才没听清，再试一次，或者写在下面';
+    const M = {
+      'not-allowed'  : '麦克风没授权 —— 直接把话写在下面也一样',
+      'service-not-allowed': '这个浏览器不让用语音 —— 换 Chrome 或 Safari，或者写在下面',
+      'no-speech'    : '一直没听到声音 —— 离麦克风近一点再点一次，或者写在下面',
+      'audio-capture': '找不到麦克风 —— 检查一下设备，或者直接写在下面',
+      'network'      : '语音识别断网了 —— 直接把话写在下面也一样'
+    };
+    $('recTip').textContent = M[ev.error] || '刚才没听清，再点一次，或者写在下面';
   };
   rec.onend=()=>{ if(rec) recStop(); };
   try{ rec.start(); }catch(e){ recStop(); return; }
   $('mic').classList.add('rec-on');
+  keepAwake(true);
   $('goOwn').classList.remove('next');
   $('recTip').textContent='正在听 —— 说完再点一下';
   recTimer=setInterval(()=>{ $('recTime').textContent=((performance.now()-recStart)/1000).toFixed(1); },100);
 }
 
 $('mic') && ($('mic').onclick = ()=>{ rec ? recStop() : startRec(); });
+
+/* 录音和逐句播放的时候别熄屏 —— 内测反馈：说到一半屏幕黑了 */
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on){ if(!wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); }
+    else  { if(wakeLock){ await wakeLock.release(); wakeLock=null; } }
+  }catch(e){ /* 不支持就算了，不影响任何功能 */ }
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && wakeLock===null && (rec || $('stage').classList.contains('on'))) keepAwake(true);
+});
 
 /* 图例默认收起；第一次进演练页自动展开一次，之后记住用户的选择 */
 let legendSeen = false;
@@ -1196,7 +1263,7 @@ function run(){
   showLabels=true; window.scrollTo({top:0,behavior:'smooth'});
   const t0=performance.now(), SPEED=2.6;
   let shown=-1;
-  legendFirstTime();
+  legendFirstTime(); keepAwake(true);
   $('script').classList.remove('done');
   $('script').innerHTML=''; fillTally={};
   $('sceneName').textContent = (curScene && curScene.name) || '你说的话';
@@ -1228,7 +1295,7 @@ $('retry').onclick = ()=>{ $('result').classList.remove('on'); $('scrim').classL
 $('skip').onclick=()=>{ cancelAnimationFrame(raf); finish(); };
 
 function finish(){
-  cancelAnimationFrame(raf);
+  cancelAnimationFrame(raf); keepAwake(false);
   const { list, total } = SESSION;
   stars=[];
   list.filter(s=>s.sig).forEach(s=>addStar(s.text.length>10?s.text.slice(0,10)+'…':s.text, s.role));
@@ -1287,7 +1354,12 @@ function renderResult(){
   renderRewrite();
   const g=findGaps(list);
   $('gapPanel').style.display = g.length ? '' : 'none';
-  $('gaps').innerHTML = g.map(x=>`<li>${x}</li>`).join('');
+  $('gaps').innerHTML = g.slice(0,4).map(x=>`<div class="gap">
+      <p class="gt">${esc(x.t)}</p>
+      ${x.q ? `<p class="gq">「${esc(x.q)}」</p>` : ''}
+      <p class="gw">${esc(x.why)}</p>
+      <p class="gf">${esc(x.fix)}</p>
+    </div>`).join('');
 }
 
 const esc = t => t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
