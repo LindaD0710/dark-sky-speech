@@ -407,8 +407,8 @@
   </div>
 
   <div class="wrap">
-    <button class="legend-toggle" id="legendBtn">颜色说明 <span>收起</span></button>
-    <div class="legend on" id="legendBox">
+    <button class="legend-toggle" id="legendBtn">这些颜色是什么意思？<span>展开</span></button>
+    <div class="legend" id="legendBox">
       <span class="lg lg-core"><span>结论与诉求<i>你要对方记住的那句</i></span></span>
       <span class="lg lg-fact"><span>证据<i>能被核实的数字和事实</i></span></span>
       <span class="lg lg-setup"><span>情境<i>去掉它，后面那条证据就听不懂了</i></span></span>
@@ -1204,10 +1204,7 @@ $('legendBtn').onclick = ()=>{
   $('legendBtn').querySelector('span').textContent = on ? '收起' : '展开';
 };
 function legendFirstTime(){
-  if(legendSeen) return;
-  legendSeen = true;
-  $('legendBox').classList.add('on');
-  $('legendBtn').querySelector('span').textContent = '收起';
+  // 默认一直收起 —— 展开与否交给用户。按钮上那句话已经说清里面是什么。
 }
 
 $('goOwn').onclick  = async ()=>{
