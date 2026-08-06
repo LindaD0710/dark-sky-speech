@@ -146,17 +146,19 @@
   .scene{font-size:13px;letter-spacing:.14em;color:var(--muted)}
   /* 图例是查阅型信息：看一次就记住了，不该常驻占一屏 */
   .legend-toggle{background:transparent;border:1px solid var(--line);color:var(--muted);
-    font-family:inherit;font-size:12.5px;padding:7px 14px;border-radius:999px;
+    font-family:inherit;font-size:14px;padding:7px 14px;border-radius:999px;
     cursor:pointer;transition:.24s;margin-bottom:14px}
   .legend-toggle:hover{color:var(--ink);border-color:rgba(255,255,255,.28)}
   .legend-toggle span{color:var(--dim);margin-left:4px}
-  .legend{display:none;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
-    gap:11px 18px;margin-bottom:16px;font-size:12.5px;color:var(--muted);
+  .legend{display:none;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:15px 22px;margin-bottom:16px;font-size:15px;color:var(--ink);
     background:var(--surface);border:1px solid rgba(255,255,255,.07);
     border-radius:16px;padding:18px 20px}
   .legend.on{display:grid}
-  .lg{display:inline-flex;align-items:center;gap:6px}
-  .lg::before{content:"";width:8px;height:8px;border-radius:2px}
+  .lg{display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+  .lg::before{content:"";width:9px;height:9px;border-radius:2px;flex:none;margin-top:7px}
+  .lg i{display:block;font-style:normal;font-size:13.5px;color:var(--dim);
+    line-height:1.6;margin-top:3px}
   .lg-core::before{background:#FFE9B0}
   .lg-fact::before{background:#7FE0C0}
   .lg-self::before{background:#FFA36B}
@@ -181,7 +183,7 @@
     border-left:2px solid rgba(255,215,130,.34);
     font-size:14.5px;line-height:1.8;color:#C9BCA1}
   .ln .react span{color:#6E7688}
-  .script-tip{font-size:12px;color:var(--dim);margin-top:16px;display:none}
+  .script-tip{font-size:14px;color:var(--dim);margin-top:16px;display:none}
   .script.done ~ .script-tip{display:block}
   .script::-webkit-scrollbar{display:none}
   .ln{display:flex;gap:14px;align-items:flex-start;padding:12px 0;
@@ -225,13 +227,19 @@
     animation:reveal 1.6s ease .35s both}
   @keyframes reveal{from{opacity:0;letter-spacing:.14em}to{opacity:1;letter-spacing:.01em}}
   .headline{font-size:clamp(24px,4.6vw,38px);line-height:1.5;font-weight:600;margin-top:18px}
+  .todo{margin:20px auto 0;max-width:640px;display:flex;gap:12px;align-items:flex-start;
+    text-align:left;background:rgba(255,233,176,.09);border:1px solid rgba(255,233,176,.34);
+    border-radius:14px;padding:16px 20px}
+  .todo b{flex:none;color:#FFE9B0;font-size:15px;font-weight:600;letter-spacing:.04em;
+    padding-top:2px;white-space:nowrap}
+  .todo span{font-size:16px;line-height:1.75;color:var(--ink)}
   .headline b{color:#FF8A46;font-weight:600;font-variant-numeric:tabular-nums}
   .headline .ok{color:var(--star)}
 
   .panel{background:var(--panel);backdrop-filter:blur(16px);border:1px solid var(--line);
     border-radius:20px;padding:24px;margin-top:20px}
   .panel h4{font-size:12px;letter-spacing:.2em;color:var(--dim);font-weight:500;margin-bottom:4px}
-  .panel .hint{font-size:12.5px;color:var(--dim);margin-top:2px;margin-bottom:16px;line-height:1.8}
+  .panel .hint{font-size:15px;color:var(--dim);margin-top:2px;margin-bottom:16px;line-height:1.8}
 
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
     background:var(--line);border-radius:16px;overflow:hidden;margin-top:20px}
@@ -239,7 +247,7 @@
   .stat b{display:block;font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
   .stat b.warn{color:#FF8A46}
   .stat b.good{color:var(--star)}
-  .stat span{font-size:11.5px;color:var(--dim);letter-spacing:.06em}
+  .stat span{font-size:13.5px;color:var(--dim);letter-spacing:.06em}
 
 
 
@@ -271,7 +279,7 @@
   .evs{display:flex;flex-direction:column;gap:8px;padding-left:16px;position:relative}
   .evs::before{content:"";position:absolute;left:6px;top:-6px;bottom:10px;width:1px;background:var(--ln)}
   .evs .bx{text-align:left;font-size:12.5px;padding:9px 12px}
-  .pyr-key{display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:11px;color:var(--dim)}
+  .pyr-key{display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:14px;color:var(--dim)}
   .pyr-key span{display:inline-flex;align-items:center;gap:6px}
   .pyr-key span::before{content:"";width:9px;height:9px;border-radius:2px;border:1px solid}
   .k-said::before{background:rgba(127,224,192,.35);border-color:rgba(127,224,192,.6)}
@@ -289,10 +297,10 @@
     font-size:13px;color:var(--muted);line-height:1.9}
   .rw-meta b{color:var(--star);font-weight:600;font-variant-numeric:tabular-nums}
 
-  .gaps li{list-style:none;font-size:14px;color:var(--muted);padding:9px 0 9px 18px;position:relative;line-height:1.8}
+  .gaps li{list-style:none;font-size:15.5px;color:var(--muted);padding:9px 0 9px 18px;position:relative;line-height:1.8}
   .gaps li::before{content:"";position:absolute;left:0;top:17px;width:5px;height:5px;border-radius:50%;background:#FF8A46}
 
-  .cite{font-size:11.5px;color:var(--dim);line-height:1.95;margin-top:26px;text-align:center}
+  .cite{font-size:13px;color:var(--dim);line-height:1.95;margin-top:26px;text-align:center}
   .disclaimer{margin-top:34px;padding:14px 18px;border:1px dashed rgba(255,255,255,.13);
     border-radius:12px;font-size:12px;color:var(--dim);line-height:1.85;text-align:center}
   @media(max-width:600px){
@@ -380,15 +388,15 @@
   </div>
 
   <div class="wrap">
-    <button class="legend-toggle" id="legendBtn">颜色说明 <span>展开</span></button>
-    <div class="legend" id="legendBox">
-      <span class="lg lg-core">结论与诉求</span>
-      <span class="lg lg-fact">证据 · 事实与数据</span>
-      <span class="lg lg-setup">情境 · 证据的前提</span>
-      <span class="lg lg-self">在讲自己</span>
-      <span class="lg lg-back">铺垫</span>
-      <span class="lg lg-fill">口头禅</span>
-      <span class="lg lg-void">正确的废话</span>
+    <button class="legend-toggle" id="legendBtn">颜色说明 <span>收起</span></button>
+    <div class="legend on" id="legendBox">
+      <span class="lg lg-core"><span>结论与诉求<i>你要对方记住的那句</i></span></span>
+      <span class="lg lg-fact"><span>证据<i>能被核实的数字和事实</i></span></span>
+      <span class="lg lg-setup"><span>情境<i>去掉它，后面那条证据就听不懂了</i></span></span>
+      <span class="lg lg-self"><span>在讲自己<i>主语是「我」，不是对方关心的事</i></span></span>
+      <span class="lg lg-back"><span>铺垫<i>删掉也不影响理解</i></span></span>
+      <span class="lg lg-fill"><span>口头禅<i>那个、就是、对吧</i></span></span>
+      <span class="lg lg-void"><span>正确的废话<i>不可反对，也无法执行</i></span></span>
       <p class="legend-note">同一个口头禅说到第 3 次会被划出来 —— 那时它不再是口头禅，是在抢注意力。</p>
     </div>
     <div class="script" id="script"></div>
@@ -411,6 +419,7 @@
     <div class="verdict">
       <p class="eyebrow" id="rScene">—</p>
       <p class="headline" id="rHead"></p>
+      <p class="todo" id="rTodo" style="display:none"></p>
     </div>
 
     <div class="stats" id="stats"></div>
@@ -1261,6 +1270,19 @@ function renderResult(){
     <div class="stat"><b>${total.toFixed(0)}s</b><span>你说了多久</span></div>
     <div class="stat"><b class="${fs&&fs.t0<=ELEVATOR?'good':'warn'}">${fs?'第 '+fs.t0.toFixed(0)+' 秒':'从未'}</b><span>第一句有信息量的话</span></div>
     <div class="stat"><b class="${pct>35?'warn':''}">${pct}%</b><span>铺垫与表功占了</span></div>`;
+
+  // 先结论后证据：一句话告诉用户第一步改哪儿
+  const P = (spec && spec.pyramid) || null;
+  const noConc  = P && P.conclusion && P.conclusion.said == null;
+  const noReason= P && Array.isArray(P.reasons) && P.reasons.some(r=>r.said==null);
+  let todo = '';
+  if (noConc)                    todo = `你要对方记住的那句话，从头到尾没说出口。往下看金字塔里的橙色虚线。`;
+  else if (fs && fs.t0>ELEVATOR) todo = `把第 ${fs.t0.toFixed(0)} 秒那句话挪到第一句。顺序改了，内容一个字都不用动。`;
+  else if (pct > 35)             todo = `有 ${pct}% 的字花在铺垫和表功上，先把它们删掉。`;
+  else if (noReason)             todo = `结论说了，但支撑它的理由还没说明白。往下看金字塔。`;
+  else                           todo = `结构上没有大问题，往下看逐条对照，挑细节。`;
+  $('rTodo').style.display = '';
+  $('rTodo').innerHTML = `<b>先改这里</b><span>${todo}</span>`;
 
   renderRewrite();
   const g=findGaps(list);
