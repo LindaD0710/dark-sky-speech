@@ -1070,7 +1070,10 @@ function setScene(id){
   }
 }
 $('tabs').addEventListener('click',e=>{
-  const b=e.target.closest('.tab'); if(b) setScene(b.dataset.id);
+  const b=e.target.closest('.tab'); if(!b) return;
+  if(b.dataset.id === curScene.id) return;   // 点的是当前场景，什么都不动
+  clearInput();                              // 换场景 = 换一件事，上一段话不该留着
+  setScene(b.dataset.id);
 });
 setScene(CORPUS[0].id);
 
@@ -1141,6 +1144,16 @@ function recStop(){
     $('recTip').textContent='没听到，再试一次';
   }
   keepAwake(false);
+}
+
+// 把输入区恢复成刚进来的样子：录音停掉、文字清空、提示语归位
+function clearInput(){
+  if(rec) recStop();
+  heard=[];
+  $('own').value='';
+  $('recLive') && ($('recLive').innerHTML='');
+  $('goOwn').classList.remove('next');
+  if(SR) $('recTip').textContent='点一下，开始说';
 }
 
 function startRec(){
@@ -1288,7 +1301,7 @@ function run(){
 }
 $('replay').onclick=run;
 $('retry').onclick = ()=>{ $('result').classList.remove('on'); $('scrim').classList.remove('on');
-                           $('own').value=''; show('picker'); $('own').focus(); };
+                           clearInput(); show('picker'); $('own').focus(); };
 $('skip').onclick=()=>{ cancelAnimationFrame(raf); finish(); };
 
 function finish(){
